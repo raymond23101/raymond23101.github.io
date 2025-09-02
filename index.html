@@ -1,16 +1,152 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <title>My Portfolio</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raymond • CS180/CS280A Portfolio</title>
+  <meta name="description" content="Projects for CS180/CS280A — photography, perspective, and computational imaging." />
+  <style>
+    :root{
+      /* Light blue palette */
+      --bg:#f5f9ff;           /* page background */
+      --ink:#0e1b2c;          /* primary text */
+      --muted:#5a6b82;        /* secondary text */
+      --accent:#3b82f6;       /* bright blue */
+      --accent-2:#60a5fa;     /* lighter blue */
+      --card:#ffffff;         /* card background */
+      --border:#e6edf7;       /* subtle borders */
+      --shadow:0 10px 25px rgba(25, 74, 142, .12);
+      --radius:18px;
+      --max:1080px;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--ink); background: radial-gradient(1200px 800px at 105% -10%, #d8ebff 0%, rgba(216,235,255,0) 60%), radial-gradient(900px 600px at -10% 110%, #e6f0ff 0%, rgba(230,240,255,0) 55%), var(--bg);
+    }
+    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 56px}
+
+    /* Top bar */
+    .nav{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px}
+    .brand{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px}
+    .brand .badge{background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); color:#fff; border-radius:10px; padding:6px 10px; font-size:.9rem; box-shadow: var(--shadow)}
+    .links a{color:var(--muted); text-decoration:none; margin-left:14px}
+    .links a:hover{color:var(--accent)}
+
+    /* Hero */
+    .hero{display:grid; grid-template-columns:1.1fr; gap:18px; align-items:center; margin:18px 0 26px}
+    @media(min-width:900px){ .hero{grid-template-columns:1.1fr .9fr} }
+    h1{font-size:clamp(1.7rem, 1.2rem + 2.2vw, 2.8rem); line-height:1.12; margin:0}
+    .tag{display:inline-block; margin-top:10px; color:#0b3a7a; background:rgba(59,130,246,.12); border:1px solid rgba(59,130,246,.25); border-radius:999px; padding:6px 10px; font-weight:600; font-size:.85rem}
+    .lede{color:var(--muted); margin-top:10px; font-size:1.05rem}
+
+    .hero-card{background:linear-gradient(180deg, #ffffff 0%, #f7fbff 100%); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow)}
+    .hero-art{aspect-ratio: 4/3; border-radius:14px; background:
+      radial-gradient(120px 120px at 28% 30%, rgba(96,165,250,.25) 0%, rgba(96,165,250,0) 70%),
+      radial-gradient(160px 160px at 70% 65%, rgba(59,130,246,.18) 0%, rgba(59,130,246,0) 70%),
+      linear-gradient(135deg, #e9f3ff 0%, #ffffff 100%);
+      border:1px solid var(--border); position:relative; overflow:hidden}
+    .hero-art:before{content:""; position:absolute; inset:0; background:
+      conic-gradient(from 120deg at 60% 20%, rgba(59,130,246,.08), transparent 30%, rgba(96,165,250,.08), transparent 70%);
+      mix-blend:multiply}
+    .hero-buttons{display:flex; flex-wrap:wrap; gap:12px; margin-top:18px}
+    .btn{display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:600; border:1px solid var(--border); background:#fff}
+    .btn-primary{background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); color:#fff; border:none; box-shadow:var(--shadow)}
+    .btn:hover{transform:translateY(-1px); box-shadow:0 12px 28px rgba(59,130,246,.18)}
+
+    /* Projects grid */
+    .grid{display:grid; gap:18px; grid-template-columns:1fr}
+    @media(min-width:780px){ .grid{grid-template-columns:1fr 1fr 1fr} }
+    .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column}
+    .thumb{height:160px; background: linear-gradient(90deg, #e8f1ff 0%, #f7fbff 100%); border-bottom:1px solid var(--border); position:relative}
+    .thumb::after{content:""; position:absolute; inset:0; background: radial-gradient(140px 120px at 70% 40%, rgba(59,130,246,.15), transparent 60%)}
+    .card-body{padding:16px}
+    .card h3{margin:0 0 8px; font-size:1.1rem}
+    .card p{margin:0; color:var(--muted)}
+    .card a.stretch{position:relative; inset:0; text-indent:-9999px}
+    .card:hover{transform:translateY(-3px); box-shadow:0 16px 34px rgba(25,74,142,.18)}
+
+    footer{margin-top:42px; color:var(--muted); font-size:.95rem}
+    .hr{height:1px; background:var(--border); margin:26px 0}
+
+    /* Print tweaks (for PDF screenshots if needed) */
+    @media print{
+      body{background:#fff}
+      .hero-art{box-shadow:none}
+      .btn, .links{display:none}
+    }
+  </style>
 </head>
 <body>
-    <h1>Welcome to My CS180 Portfolio!</h1>
-    <a href="./0/index.html">Project 0</a>
+  <div class="wrap">
+    <nav class="nav">
+      <div class="brand"><span class="badge">RW</span> Raymond • CS180/CS280A</div>
+      <div class="links">
+        <a href="#projects">Projects</a>
+        <a href="https://github.com/raymond23101" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <h1>Welcome to my CS180 Portfolio</h1>
+        <span class="tag">Light‑blue theme</span>
+        <p class="lede">A curated set of photography & computational imaging assignments. Clean visuals, quick links, and a touch of blue ✨.</p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" href="0/">View Project 0</a>
+          <a class="btn" href="#projects">Browse all projects</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-art" aria-hidden="true"></div>
+        <div class="lede" style="margin-top:12px">Tip: For submission, print the project page to PDF with background graphics enabled.</div>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section id="projects" class="grid">
+      <article class="card">
+        <div class="thumb" role="img" aria-label="Project 0 cover art"></div>
+        <div class="card-body">
+          <h3>Project 0 — Focal Length, Perspective & Dolly Zoom</h3>
+          <p>Selfie distortion vs. telephoto, street compression, and a dolly‑zoom GIF.</p>
+        </div>
+        <a class="stretch" href="0/">Open Project 0</a>
+      </article>
+
+      <article class="card" aria-hidden="true" style="opacity:.7">
+        <div class="thumb"></div>
+        <div class="card-body">
+          <h3>Project 1 — Coming Soon</h3>
+          <p>Placeholder for your next assignment.</p>
+        </div>
+      </article>
+
+      <article class="card" aria-hidden="true" style="opacity:.7">
+        <div class="thumb"></div>
+        <div class="card-body">
+          <h3>Project 2 — Coming Soon</h3>
+          <p>Placeholder for future work.</p>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      <div class="hr"></div>
+      <p>© <span id="year"></span> Raymond Wang • <a href="https://raymond23101.github.io">raymond23101.github.io</a></p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // Make entire card clickable by forwarding clicks to the stretch link
+    document.querySelectorAll('.card').forEach(card => {
+      const link = card.querySelector('a.stretch') || card.querySelector('a');
+      if(!link) return;
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', (e) => { if(e.target.tagName !== 'A'){ link.click(); } });
+    });
+  </script>
 </body>
 </html>
