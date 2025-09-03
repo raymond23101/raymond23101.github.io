@@ -2,23 +2,114 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Project 0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project 0 — Focal Length, Perspective & Dolly Zoom</title>
+  <meta name="description" content="Two-photo comparisons for selfie distortion and architectural compression, plus a dolly‑zoom GIF." />
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-    img { max-width: 100%; height: auto; }
-    a { text-decoration: none; }
+    :root{
+      /* Light blue palette to match the homepage */
+      --bg:#f5f9ff; --ink:#0e1b2c; --muted:#5a6b82;
+      --accent:#3b82f6; --accent-2:#60a5fa;
+      --card:#ffffff; --border:#e6edf7;
+      --shadow:0 10px 25px rgba(25,74,142,.12);
+      --radius:18px; --max:1000px;
+    }
+    html,body{background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, "Helvetica Neue", Arial}
+    body{margin:0; padding:28px 18px 56px}
+    .wrap{max-width:var(--max); margin:0 auto}
+
+    header{display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem}
+    h1{font-size:clamp(1.6rem, 1.15rem + 2vw, 2.4rem); line-height:1.15; margin:.25rem 0}
+    .pill{display:inline-block; padding:.25rem .6rem; border-radius:999px; border:1px solid rgba(59,130,246,.25); background:rgba(59,130,246,.12); color:#0b3a7a; font-weight:600; font-size:.85rem}
+    a{color:var(--accent); text-decoration:none}
+
+    .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow)}
+    .grid{display:grid; gap:16px}
+    .two{grid-template-columns:1fr}
+    @media(min-width:780px){ .two{grid-template-columns:1fr 1fr} }
+
+    figure{margin:0}
+    img{width:100%; height:auto; display:block; border-radius:14px; border:1px solid var(--border)}
+    figcaption{margin-top:.45rem; color:var(--muted); font-size:.95rem}
+
+    h2{margin:.25rem 0 .65rem; font-size:1.3rem}
+    p{line-height:1.6}
+    .why{border-left:3px solid var(--accent); padding:.5rem .75rem; background:rgba(59,130,246,.06); border-radius:.5rem}
+
+    footer{margin-top:2rem; color:var(--muted); font-size:.95rem}
+    hr{border:none; border-top:1px solid var(--border); margin:1.5rem 0}
+
+    /* Print tweaks for the PDF deliverable */
+    @media print{
+      :root{--bg:#ffffff; --ink:#000; --muted:#333; --card:#fff; --border:#ddd}
+      body{padding:0}
+      .card{box-shadow:none}
+    }
   </style>
 </head>
 <body>
-  <nav><a href="/">← Back to home</a></nav>
-  <h1>Project 0</h1>
-  <p>Becoming Friends with Your Camera.</p>
+  <div class="wrap">
+    <header>
+      <div>
+        <a href="/">← Back to Home</a>
+        <h1>Project 0 — Focal Length, Perspective & Dolly Zoom</h1>
+        <span class="pill">CS180/CS280A • Photography & Perception</span>
+      </div>
+    </header>
 
-  <h2>Gallery</h2>
-  <figure>
-    <img src="media/img1.jpg" alt="Screenshot or sample" />
-    <figcaption>Caption for image 1</figcaption>
-  </figure>
+    <div class="card">
+      <h2>Part 1 — Selfie: The Wrong Way vs. The Right Way</h2>
+      <p>Two portraits framed to the same face size. The first is a close, wide‑angle selfie; the second is shot from farther away with more zoom to reduce perspective distortion.</p>
+      <div class="grid two">
+        <figure>
+          <img src="media/selfie_close.jpg" alt="Close, wide‑angle selfie (wrong way)">
+          <figcaption><strong>Close / Wide</strong> — camera very near the face ("wrong way").</figcaption>
+        </figure>
+        <figure>
+          <img src="media/selfie_tele.jpg" alt="Stepped back and zoomed‑in portrait (right way)">
+          <figcaption><strong>Backed up + Zoom</strong> — same face size, less distortion ("right way").</figcaption>
+        </figure>
+      </div>
+      <div class="why" style="margin-top:1rem">
+        <strong>Why it looks better:</strong> perspective is set by <em>camera distance</em>, not focal length. Stepping back equalizes distances to facial features; zoom just matches framing.
+      </div>
+    </div>
+
+    <hr/>
+
+    <div class="card">
+      <h2>Part 2 — Architectural Perspective Compression</h2>
+      <p>Same scene, two distances. The far+zoomed shot appears flatter (compressed), while the close+wide shot feels deeper with stronger converging lines.</p>
+      <div class="grid two">
+        <figure>
+          <img src="media/street_long.jpg" alt="Far + zoomed view down a street (compressed look)">
+          <figcaption><strong>Far + Zoomed</strong> — apparent compression of depth cues.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/street_close.jpg" alt="Close, wide view down a street (expanded look)">
+          <figcaption><strong>Close + Wide</strong> — stronger depth expansion and convergence.</figcaption>
+        </figure>
+      </div>
+      <div class="why" style="margin-top:1rem">
+        <strong>Why it looks different:</strong> From far away, the depth range within frame is smaller, so relative size changes with distance are muted (compression). Up close, those differences grow.
+      </div>
+    </div>
+
+    <hr/>
+
+    <div class="card">
+      <h2>Part 3 — The Dolly Zoom</h2>
+      <p>Camera moves backward while zooming in, keeping the subject size roughly constant. Combine 4–8+ frames into a GIF to reveal the background warping.</p>
+      <figure>
+        <img src="media/dolly_zoom.gif" alt="Animated GIF demonstrating a dolly zoom effect">
+        <figcaption>Dolly‑zoom GIF assembled from sequential frames captured while dollying back and zooming in.</figcaption>
+      </figure>
+      <p class="muted" style="color:var(--muted); margin-top:.75rem">If the GIF doesn't load, ensure the file lives at <code>/0/media/dolly_zoom.gif</code> and the filename matches exactly.</p>
+    </div>
+
+    <footer>
+      <p><strong>Capture notes (optional):</strong> fixed exposure & white balance; tripod for Part 2; subject distance matched for Part 1. Media files live in <code>/0/media/</code>.</p>
+    </footer>
+  </div>
 </body>
 </html>
