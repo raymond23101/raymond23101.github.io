@@ -41,6 +41,12 @@
     .trial{flex:1; text-align:center}
     .trial h3{color:var(--accent); margin-bottom:10px}
     .highlight{background:rgba(255,193,7,.1); border:1px solid rgba(255,193,7,.3); padding:15px; border-radius:8px; margin:15px 0}
+    .side-by-side{display:flex; gap:20px; margin:20px 0; align-items:flex-start}
+    .trial-image{flex:1; text-align:center}
+    .trial-image img{max-width:100%; height:auto; border:2px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color 0.2s}
+    .trial-image img:hover{border-color:var(--accent)}
+    .trial-label{font-weight:600; color:var(--accent); margin-bottom:8px; font-size:1.1rem}
+    .trial-stats{font-size:0.9rem; color:var(--muted); margin-top:5px}
 
     /* Print tweaks for PDF */
     @media print{
@@ -150,7 +156,23 @@
 
     <div class="card">
       <h2>Pyramid Results (TIF files)</h2>
+      <p><strong>Multi-Scale Pyramid Alignment:</strong> For high-resolution TIF files, I implement a coarse-to-fine pyramid approach that dramatically improves efficiency and handles large misalignments. The algorithm works by:</p>
+      <ol>
+        <li><strong>Building Image Pyramids:</strong> Successively downsample both images by factor of 2 until the smallest dimension is ~64 pixels</li>
+        <li><strong>Coarse Alignment:</strong> Start at the coarsest level with a ±15 pixel search window using NCC metric</li>
+        <li><strong>Progressive Refinement:</strong> Upsample the displacement estimate by 2x and search within ±2 pixels of the previous estimate</li>
+        <li><strong>Final Alignment:</strong> Complete the process at full resolution for precise alignment</li>
+      </ol>
+      <p><strong>Why Pyramid Works Better:</strong> Large displacements (100+ pixels) become tractable by first finding approximate alignment at low resolution, then refining at higher resolutions. This reduces computational complexity from O(W×H×R²) to O(W×H×log(R)) where R is the search radius.</p>
       <div class="grid three" id="pyr-grid"></div>
+    </div>
+
+    <hr/>
+
+    <div class="card">
+      <h2>Trial Comparison: Side-by-Side Results</h2>
+      <p>Visual comparison of Trial 1 (10% cropping) vs Trial 2 (20% cropping) for selected images. Click on images to view full size.</p>
+      <div id="trial-comparison"></div>
     </div>
 
     <hr/>
@@ -316,9 +338,90 @@
       });
     }
 
+    function createTrialComparison(imageName, title) {
+      const container = document.createElement("div");
+      container.className = "side-by-side";
+      
+      const trial1 = document.createElement("div");
+      trial1.className = "trial-image";
+      const img1 = document.createElement("img");
+      img1.src = "out/trial_1/" + imageName + "_colorized.jpg";
+      img1.alt = title + " - Trial 1";
+      img1.onclick = () => window.open(img1.src, '_blank');
+      const label1 = document.createElement("div");
+      label1.className = "trial-label";
+      label1.textContent = "Trial 1 (10% cropping)";
+      const stats1 = document.createElement("div");
+      stats1.className = "trial-stats";
+      const t1_offsets = trial1_offsets[imageName];
+      stats1.textContent = `G→B: (${t1_offsets.G[0]}, ${t1_offsets.G[1]}) | R→B: (${t1_offsets.R[0]}, ${t1_offsets.R[1]})`;
+      
+      const trial2 = document.createElement("div");
+      trial2.className = "trial-image";
+      const img2 = document.createElement("img");
+      img2.src = "out/trial_2/" + imageName + "_colorized.jpg";
+      img2.alt = title + " - Trial 2";
+      img2.onclick = () => window.open(img2.src, '_blank');
+      const label2 = document.createElement("div");
+      label2.className = "trial-label";
+      label2.textContent = "Trial 2 (20% cropping)";
+      const stats2 = document.createElement("div");
+      stats2.className = "trial-stats";
+      const t2_offsets = trial2_offsets[imageName];
+      stats2.textContent = `G→B: (${t2_offsets.G[0]}, ${t2_offsets.G[1]}) | R→B: (${t2_offsets.R[0]}, ${t2_offsets.R[1]})`;
+      
+      // Highlight differences
+      const gChanged = t1_offsets.G[0] !== t2_offsets.G[0] || t1_offsets.G[1] !== t2_offsets.G[1];
+      const rChanged = t1_offsets.R[0] !== t2_offsets.R[0] || t1_offsets.R[1] !== t2_offsets.R[1];
+      if (gChanged || rChanged) {
+        stats1.style.background = "rgba(255,193,7,.1)";
+        stats2.style.background = "rgba(255,193,7,.1)";
+        stats1.style.padding = "5px";
+        stats2.style.padding = "5px";
+        stats1.style.borderRadius = "4px";
+        stats2.style.borderRadius = "4px";
+      }
+      
+      trial1.appendChild(img1);
+      trial1.appendChild(label1);
+      trial1.appendChild(stats1);
+      trial2.appendChild(img2);
+      trial2.appendChild(label2);
+      trial2.appendChild(stats2);
+      
+      container.appendChild(trial1);
+      container.appendChild(trial2);
+      
+      return container;
+    }
+
+    function mountTrialComparison() {
+      const container = document.getElementById("trial-comparison");
+      
+      // Select key images for comparison
+      const comparisonImages = [
+        {name: "harvesters", title: "Harvesters (shows improvement)"},
+        {name: "cathedral", title: "Cathedral (single-scale)"},
+        {name: "monastery", title: "Monastery (single-scale)"},
+        {name: "emir", title: "Emir (problematic case)"},
+        {name: "melons", title: "Melons (large offsets)"}
+      ];
+      
+      comparisonImages.forEach(img => {
+        const comparison = createTrialComparison(img.name, img.title);
+        const title = document.createElement("h3");
+        title.textContent = img.title;
+        title.style.marginTop = "30px";
+        title.style.marginBottom = "10px";
+        container.appendChild(title);
+        container.appendChild(comparison);
+      });
+    }
+
     mountGallery("single-grid", singles);
     mountGallery("pyr-grid", pyramids);
     mountComparisonTable();
+    mountTrialComparison();
   </script>
 </body>
 </html>
