@@ -12,7 +12,7 @@ RADIUS    = 15
 CROP_FRAC = 0.20
 PYRAMID   = False
 MIN_SIDE  = 64
-TRIAL_NUM = 3
+TRIAL_NUM = 2
 # ================================
 
 def split_bgr(im):
@@ -110,10 +110,10 @@ for imname in image_files:
     b, g, r = split_bgr(im)
     
     is_tif = imname.lower().endswith(('.tif'))
-    use_pyramid = PYRAMID or is_tif or (im.shape[0] > 1000 or im.shape[1] > 1000)
+    use_pyramid = PYRAMID or is_tif
     
     if use_pyramid:
-        reason = "TIF file" if is_tif else "large image" if (im.shape[0] > 1000 or im.shape[1] > 1000) else "PYRAMID=True"
+        reason = "TIF file" if is_tif else "PYRAMID=True"
         print(f"  Using pyramid alignment ({reason}: {im.shape}, radius: {RADIUS})")
         dyg, dxg = align_pyramid(b, g, RADIUS, METRIC, CROP_FRAC, MIN_SIDE)
         dyr, dxr = align_pyramid(b, r, RADIUS, METRIC, CROP_FRAC, MIN_SIDE)
