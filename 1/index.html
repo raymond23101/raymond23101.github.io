@@ -209,21 +209,6 @@
       </ul>
     </div>
 
-    <div class="card">
-      <h2>Bells & Whistles</h2>
-      <ul>
-        <li><strong>Internal Cropping Implementation:</strong> Key breakthrough following course advice to "compute only on internal pixels" - dramatically improved alignment quality</li>
-        <li><strong>Adaptive File Processing:</strong> Automatic selection of alignment method based on file type (JPG vs TIF)</li>
-        <li><strong>Trial-Based Organization:</strong> Organized output system with trial-specific folders for easy parameter comparison</li>
-        <li><strong>Robust Path Handling:</strong> Cross-platform file operations using os.path for reliable execution across different systems</li>
-        <li><strong>Comprehensive Error Handling:</strong> Checks for empty regions, invalid overlaps, and edge cases to prevent crashes</li>
-        <li><strong>Detailed Progress Reporting:</strong> Complete logging of alignment process with method selection and offset results</li>
-        <li><strong>Border Cropping Optimization:</strong> Systematic testing of 10% vs 20% border removal to optimize alignment quality</li>
-        <li><strong>File Type Optimization:</strong> Different processing strategies for JPG (single-scale) vs TIF (pyramid) files</li>
-        <li><strong>Data Type Conversion:</strong> Proper handling of float64 to uint8 conversion for image saving</li>
-        <li><strong>Iterative Problem Solving:</strong> Documented development process from initial poor results to optimized solution</li>
-      </ul>
-    </div>
 
     <footer>
       <p><strong>Parameters:</strong> single-scale window ±15 px; pyramid min side ≈ 64 px, window ±15 px; score computed on internal pixels (10% or 20% border ignored).</p>
