@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project 3A — Image Warping & Mosaicing</title>
+  <meta name="description" content="CS180/CS280A Project 3A — Homographies, inverse warping (NN/Bilinear), rectification, and mosaicing." />
+  <style>
+    :root{
+      /* match main site palette */
+      --bg:#f5f9ff; --ink:#0e1b2c; --muted:#5a6b82;
+      --accent:#3b82f6; --accent-2:#60a5fa;
+      --card:#ffffff; --border:#e6edf7;
+      --shadow:0 10px 25px rgba(25, 74, 142, .12);
+      --radius:18px; --max:1080px;
+    }
+    body{margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,"Helvetica Neue",Arial;
+         color:var(--ink);
+         background: radial-gradient(1200px 800px at 105% -10%, #d8ebff 0%, rgba(216,235,255,0) 60%),
+                     radial-gradient(900px 600px at -10% 110%, #e6f0ff 0%, rgba(230,240,255,0) 55%),
+                     var(--bg)}
+    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 56px}
+
+    a{color:var(--accent); text-decoration:none}
+    a:hover{color:#1e67f0}
+
+    .top{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
+    .brand{display:flex; align-items:center; gap:10px; font-weight:700}
+    .badge{background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); color:#fff; border-radius:10px; padding:6px 10px; font-size:.9rem; box-shadow:var(--shadow)}
+    .crumbs{color:var(--muted)}
+
+    h1{font-size:clamp(1.6rem, 1.1rem + 2vw, 2.4rem); margin:12px 0 6px}
+    h2{margin:28px 0 12px; font-size:1.35rem}
+    p.lede{color:var(--muted); margin:6px 0 18px}
+
+    .card{background:#fff; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px}
+    .section{margin:24px 0}
+    .grid{display:grid; gap:16px; grid-template-columns:1fr}
+    @media(min-width:760px){ .grid{grid-template-columns:1fr 1fr} }
+    @media(min-width:1040px){ .grid-3{grid-template-columns:1fr 1fr 1fr} }
+
+    figure{margin:0; background:linear-gradient(180deg, #ffffff 0%, #f7fbff 100%); border:1px solid var(--border); border-radius:14px; overflow:hidden}
+    .imgwrap{position:relative; aspect-ratio: 16/10; background:#f0f6ff}
+    img{width:100%; height:100%; object-fit:contain; display:block; background:#f9fbff}
+    figcaption{padding:10px 12px; font-size:.95rem; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .mini-links{display:flex; gap:10px; font-size:.9rem}
+
+    .hr{height:1px; background:var(--border); margin:28px 0}
+    details{background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 14px}
+    details summary{cursor:pointer; font-weight:600}
+
+    .pill{display:inline-block; font-size:.8rem; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:#0b3a7a; background:rgba(59,130,246,.08)}
+    .gallery-note{color:var(--muted); font-size:.95rem}
+
+    footer{margin-top:42px; color:var(--muted); font-size:.95rem}
+    .btn{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; text-decoration:none; font-weight:600; border:1px solid var(--border); background:#fff}
+    .btn:hover{transform:translateY(-1px); box-shadow:0 10px 22px rgba(59,130,246,.18)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><span class="badge">RW</span> Project 3A</div>
+      <div class="crumbs"><a href="../">← Back to main</a></div>
+    </div>
+
+    <header class="card">
+      <h1>Project 3A — Image Warping & Mosaicing</h1>
+      <p class="lede">
+        Homography estimation (A.2), inverse warping with nearest-neighbor & bilinear interpolation (A.3),
+        planar rectification, and mosaic blending (A.4).
+      </p>
+      <div class="mini-links">
+        <span class="pill">Python outputs in <code>/out/</code></span>
+        <a class="btn" href="../out/" target="_blank" rel="noreferrer">Open <code>/out/</code> folder</a>
+      </div>
+    </header>
+
+    <!-- A.2 -->
+    <section class="section">
+      <h2>A.2 — Point Correspondences & Homography</h2>
+      <div class="grid">
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/correspondences.png" alt="Point correspondences overlay" loading="lazy" />
+          </div>
+          <figcaption>
+            Correspondences visualization
+            <span class="mini-links"><a href="../out/correspondences.png" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+        <details>
+          <summary>Homography matrix <code>H</code> & average reprojection error (paste from console)</summary>
+          <pre style="white-space:pre-wrap; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; color:#0e1b2c; margin-top:12px;">
+Paste the printed 3×3 <em>H</em> and average error from your run here for the record.
+          </pre>
+        </details>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <!-- A.3 -->
+    <section class="section">
+      <h2>A.3 — Inverse Warping</h2>
+      <p class="gallery-note">Warped <em>IMG_9770 → IMG_9771</em> frame using two interpolants.</p>
+      <div class="grid">
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/warping_nearest_neighbor.png" alt="Warping result (nearest neighbor)" loading="lazy" />
+          </div>
+          <figcaption>
+            Nearest Neighbor (viz)
+            <span class="mini-links"><a href="../out/warping_nearest_neighbor.png" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/warping_bilinear.png" alt="Warping result (bilinear)" loading="lazy" />
+          </div>
+          <figcaption>
+            Bilinear (viz)
+            <span class="mini-links"><a href="../out/warping_bilinear.png" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/warped_im1_nearest_neighbor.jpg" alt="Warped image (nearest neighbor, raw)" loading="lazy" />
+          </div>
+          <figcaption>
+            Nearest Neighbor (raw warped)
+            <span class="mini-links"><a href="../out/warped_im1_nearest_neighbor.jpg" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/warped_im1_bilinear.jpg" alt="Warped image (bilinear, raw)" loading="lazy" />
+          </div>
+          <figcaption>
+            Bilinear (raw warped)
+            <span class="mini-links"><a href="../out/warped_im1_bilinear.jpg" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <!-- Rectification -->
+    <section class="section">
+      <h2>Planar Rectification Examples</h2>
+      <div class="grid">
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/rectification_pot.png" alt="Rectification figure for pot.JPG" loading="lazy" />
+          </div>
+          <figcaption>
+            Rectification — pot.JPG
+            <span class="mini-links">
+              <a href="../out/rectification_pot.png" target="_blank">figure</a>
+              <a href="../out/rectified_pot.jpg" target="_blank">rectified</a>
+            </span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/rectification_sign.png" alt="Rectification figure for sign.JPG" loading="lazy" />
+          </div>
+          <figcaption>
+            Rectification — sign.JPG
+            <span class="mini-links">
+              <a href="../out/rectification_sign.png" target="_blank">figure</a>
+              <a href="../out/rectified_sign.jpg" target="_blank">rectified</a>
+            </span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <!-- A.4 -->
+    <section class="section">
+      <h2>A.4 — Image Mosaicing</h2>
+      <p class="gallery-note">Bilinear warped image blended on a union canvas with feathered alpha.</p>
+
+      <h3 style="margin:18px 0 10px">Pair 1 — <code>9770_9771</code></h3>
+      <div class="grid">
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/mosaic_9770_9771.jpg" alt="Mosaic 9770_9771" loading="lazy" />
+          </div>
+          <figcaption>
+            Final mosaic
+            <span class="mini-links"><a href="../out/mosaic_9770_9771.jpg" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/mosaic_9770_9771_visualization.png" alt="Mosaic visualization 9770_9771" loading="lazy" />
+          </div>
+          <figcaption>
+            Visualization
+            <span class="mini-links"><a href="../out/mosaic_9770_9771_visualization.png" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin:24px 0 10px">Pair 2 — <code>9772_9773</code></h3>
+      <div class="grid">
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/mosaic_9772_9773.jpg" alt="Mosaic 9772_9773" loading="lazy" />
+          </div>
+          <figcaption>
+            Final mosaic
+            <span class="mini-links"><a href="../out/mosaic_9772_9773.jpg" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/mosaic_9772_9773_visualization.png" alt="Mosaic visualization 9772_9773" loading="lazy" />
+          </div>
+          <figcaption>
+            Visualization
+            <span class="mini-links"><a href="../out/mosaic_9772_9773_visualization.png" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin:24px 0 10px">Pair 3 — <code>9782_9783</code></h3>
+      <div class="grid">
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/mosaic_9782_9783.jpg" alt="Mosaic 9782_9783" loading="lazy" />
+          </div>
+          <figcaption>
+            Final mosaic
+            <span class="mini-links"><a href="../out/mosaic_9782_9783.jpg" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+
+        <figure>
+          <div class="imgwrap">
+            <img src="../out/mosaic_9782_9783_visualization.png" alt="Mosaic visualization 9782_9783" loading="lazy" />
+          </div>
+          <figcaption>
+            Visualization
+            <span class="mini-links"><a href="../out/mosaic_9782_9783_visualization.png" target="_blank">full-res</a></span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="section">
+      <h2>Notes</h2>
+      <ul class="card" style="line-height:1.6; color:var(--muted)">
+        <li>If some images don’t show, confirm the files exist in <code>/out/</code> with the exact names used above.</li>
+        <li>If you prefer to serve from <code>3A/media/</code>, move/copy your outputs there and update each <code>src</code>/<code>href</code> path accordingly.</li>
+        <li>You can add more pairs by duplicating a “Pair” block and adjusting filenames.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <div class="hr"></div>
+      <p>© <span id="year"></span> Raymond Wang • <a href="https://raymond23101.github.io">raymond23101.github.io</a></p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
