@@ -3,348 +3,197 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project 3A — Image Warping & Mosaicing</title>
-  <meta name="description" content="CS180/CS280A Project 3A — Homographies, inverse warping (NN/Bilinear), rectification, and mosaicing, with side-by-side comparisons." />
+  <title>Project 3A — Homographies, Warping & Mosaics (CS180)</title>
+  <meta name="description" content="A.2 homography from correspondences, A.3 inverse warping (NN/Bilinear) + rectification, and A.4 feathered mosaicing." />
   <style>
     :root{
-      /* Match main site palette */
       --bg:#f5f9ff; --ink:#0e1b2c; --muted:#5a6b82;
       --accent:#3b82f6; --accent-2:#60a5fa;
       --card:#ffffff; --border:#e6edf7;
-      --shadow:0 10px 25px rgba(25, 74, 142, .12);
+      --shadow:0 10px 25px rgba(25,74,142,.12);
       --radius:18px; --max:1080px;
     }
-    html,body{height:100%}
-    body{
-      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,"Helvetica Neue",Arial;
-      color:var(--ink);
-      background:
-        radial-gradient(1200px 800px at 105% -10%, #d8ebff 0%, rgba(216,235,255,0) 60%),
-        radial-gradient(900px 600px at -10% 110%, #e6f0ff 0%, rgba(230,240,255,0) 55%),
-        var(--bg);
-    }
-    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 56px}
-
-    /* Header / nav crumbs */
-    .top{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
-    .brand{display:flex; align-items:center; gap:10px; font-weight:700}
-    .badge{background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); color:#fff; border-radius:10px; padding:6px 10px; font-size:.9rem; box-shadow:var(--shadow)}
-    .crumbs a{color:var(--muted); text-decoration:none}
-    .crumbs a:hover{color:var(--accent)}
-
-    h1{font-size:clamp(1.6rem, 1.1rem + 2vw, 2.4rem); margin:12px 0 6px}
-    h2{margin:28px 0 12px; font-size:1.35rem}
-    h3{margin:16px 0 8px; font-size:1.1rem}
-    p.lede{color:var(--muted); margin:6px 0 18px}
-
-    /* Cards & layout */
-    .card{background:#fff; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px}
-    .section{margin:24px 0}
-    .grid{display:grid; gap:16px; grid-template-columns:1fr}
-    @media(min-width:760px){ .grid{grid-template-columns:1fr 1fr} }
-    @media(min-width:1040px){ .grid-3{grid-template-columns:1fr 1fr 1fr} }
-
-    figure{margin:0; background:linear-gradient(180deg, #ffffff 0%, #f7fbff 100%); border:1px solid var(--border); border-radius:14px; overflow:hidden}
-    .imgwrap{position:relative; aspect-ratio: 16/10; background:#f0f6ff}
-    img{width:100%; height:100%; object-fit:contain; display:block; background:#f9fbff}
-    figcaption{padding:10px 12px; font-size:.95rem; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:10px}
-    .mini-links{display:flex; gap:10px; font-size:.9rem}
+    html,body{background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, "Helvetica Neue", Arial}
+    body{margin:0; padding:28px 18px 56px}
+    .wrap{max-width:var(--max); margin:0 auto}
     a{color:var(--accent); text-decoration:none}
-    a:hover{color:#1e67f0}
+    header{margin-bottom:1rem}
+    h1{font-size:clamp(1.6rem, 1.15rem + 2vw, 2.4rem); line-height:1.15; margin:.25rem 0}
+    .pill{display:inline-block; padding:.25rem .6rem; border-radius:999px; border:1px solid rgba(59,130,246,.25); background:rgba(59,130,246,.12); color:#0b3a7a; font-weight:600; font-size:.85rem}
 
-    .hr{height:1px; background:var(--border); margin:28px 0}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); margin:18px 0}
+    .grid{display:grid; gap:14px}
+    .two{grid-template-columns:1fr}
+    .three{grid-template-columns:1fr}
+    .four{grid-template-columns:1fr}
+    @media(min-width:780px){
+      .two{grid-template-columns:1fr 1fr}
+      .three{grid-template-columns:1fr 1fr 1fr}
+      .four{grid-template-columns:1fr 1fr 1fr 1fr}
+    }
 
-    /* Compare blocks */
-    .compare{position:relative; background:#eef5ff; border:1px solid var(--border); border-radius:14px; overflow:hidden}
-    .compare .pane{position:absolute; inset:0}
-    .compare .pane img{width:100%; height:100%; object-fit:contain}
-    .compare .top{width:50%; overflow:hidden; border-right:2px solid rgba(59,130,246,.6)}
-    .compare .slider{position:absolute; left:0; right:0; bottom:0; padding:10px; background:linear-gradient(180deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.9) 60%); display:flex; align-items:center; gap:10px}
-    .compare input[type=range]{width:100%}
-    .labels{position:absolute; top:8px; left:8px; right:8px; display:flex; justify-content:space-between; pointer-events:none}
-    .label{background:rgba(255,255,255,.9); color:#0b3a7a; border:1px solid var(--border); border-radius:999px; padding:4px 8px; font-size:.8rem}
-
-    .pill{display:inline-block; font-size:.8rem; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:#0b3a7a; background:rgba(59,130,246,.08)}
-    .note{color:var(--muted); font-size:.95rem}
-
-    footer{margin-top:42px; color:var(--muted); font-size:.95rem}
-
-    /* Print */
-    @media print{ body{background:#fff} }
+    figure{margin:0}
+    img{width:100%; height:auto; display:block; border-radius:14px; border:1px solid var(--border)}
+    figcaption{margin-top:.4rem; color:var(--muted); font-size:.95rem}
+    h2{margin:.25rem 0 .65rem; font-size:1.3rem}
+    h3{margin:.25rem 0 .4rem; font-size:1.05rem}
+    .why{border-left:3px solid var(--accent); padding:.5rem .75rem; background:rgba(59,130,246,.06); border-radius:.5rem}
+    .hr{height:1px; background:var(--border); margin:1.5rem 0}
+    footer{margin-top:2rem; color:var(--muted); font-size:.95rem}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; background:#eef4ff; border:1px solid #d7e5ff; padding:2px 6px; border-radius:6px}
+    code{background:#f3f6ff; border:1px solid #e6edf7; padding:.1rem .3rem; border-radius:6px}
+    pre{background:#f3f6ff; border:1px solid #e6edf7; padding:.6rem .75rem; border-radius:10px; overflow:auto}
+    @media print{ body{padding:0; background:#fff} .card{box-shadow:none} a[href]:after{content:""} }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <div class="brand"><span class="badge">RW</span> Project 3A</div>
-      <div class="crumbs"><a href="../">← Back to main</a></div>
-    </div>
-
-    <header class="card">
-      <h1>Project 3A — Image Warping & Mosaicing</h1>
-      <p class="lede">
-        Homography estimation (A.2), inverse warping (nearest neighbor & bilinear) (A.3),
-        planar rectification, and mosaicing with feathered blending (A.4). All assets are served from <code>./media/</code>.
-      </p>
-      <p class="note">Where possible, I compare originals against processed outputs (side-by-side and with interactive sliders) to highlight sharpness, alignment, and artifacts.</p>
+    <header>
+      <a href="/">← Back to Home</a>
+      <h1>Project 3A — Homographies, Warping & Mosaics</h1>
+      <span class="pill">CS180</span>
+      <p style="margin:.5rem 0 0; color:var(--muted)">All figures below are displayed directly on the page (no zoom needed). Source & result assets live in <code>3A/media/</code>.</p>
     </header>
 
-    <!-- A.2 -->
-    <section class="section">
-      <h2>A.2 — Point Correspondences & Homography</h2>
-      <div class="grid">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/IMG_9770.JPG" alt="Original source image IMG_9770" loading="lazy">
-          </div>
-          <figcaption>
-            Original — <strong>IMG_9770</strong>
-            <span class="mini-links"><a href="./media/IMG_9770.JPG" target="_blank">full-res</a></span>
-          </figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/IMG_9771.JPG" alt="Original reference image IMG_9771" loading="lazy">
-          </div>
-          <figcaption>
-            Original — <strong>IMG_9771</strong>
-            <span class="mini-links"><a href="./media/IMG_9771.JPG" target="_blank">full-res</a></span>
-          </figcaption>
-        </figure>
-      </div>
-
-      <div class="grid" style="margin-top:16px">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/correspondences.png" alt="Labeled point correspondences between IMG_9770 and IMG_9771" loading="lazy">
-          </div>
-          <figcaption>
-            Labeled correspondences
-            <span class="mini-links"><a href="./media/correspondences.png" target="_blank">full-res</a></span>
-          </figcaption>
-        </figure>
-        <figure class="card" style="display:flex;flex-direction:column;gap:10px;justify-content:center">
-          <h3 style="margin:0">Recovered Homography <code>H</code></h3>
-          <p class="note" style="margin:0">Paste your printed 3×3 <em>H</em> and average reprojection error here for the record:</p>
-          <pre style="white-space:pre-wrap; margin:0; padding:10px; background:#f6f9ff; border:1px solid var(--border); border-radius:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; color:#0e1b2c;">
-h00 h01 h02
-h10 h11 h12
-h20 h21 h22
-
-Average error:  .  pixels
-          </pre>
-        </figure>
-      </div>
-    </section>
-
-    <div class="hr"></div>
-
-    <!-- A.3 -->
-    <section class="section">
-      <h2>A.3 — Inverse Warping (Compare & Contrast)</h2>
-
-      <!-- NN vs Bilinear slider (same bbox, good for direct compare) -->
-      <div class="card" style="margin-bottom:14px">
-        <h3 style="margin-top:0">Nearest Neighbor vs. Bilinear (warped IMG_9770)</h3>
-        <div class="compare" data-compare>
-          <div class="pane base">
-            <img src="./media/warped_im1_nearest_neighbor.jpg" alt="Warped image using nearest neighbor">
-          </div>
-          <div class="pane top">
-            <img src="./media/warped_im1_bilinear.jpg" alt="Warped image using bilinear interpolation">
-          </div>
-          <div class="labels"><span class="label">Nearest Neighbor</span><span class="label">Bilinear</span></div>
-          <div class="slider">
-            <span class="pill">Drag to compare</span>
-            <input type="range" min="0" max="100" value="50" aria-label="Compare slider">
-          </div>
-        </div>
-        <p class="note" style="margin:10px 0 0">
-          Observe aliasing & jaggies with NN vs. smoother gradients with Bilinear. Both are warped to the same bounding box of <em>H</em>.
-        </p>
-      </div>
-
-      <!-- Visualizations + original reference for context -->
-      <div class="grid">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/warping_nearest_neighbor.png" alt="Visualization: NN warping montage" loading="lazy">
-          </div>
-          <figcaption>
-            Visualization — Nearest Neighbor
-            <span class="mini-links"><a href="./media/warping_nearest_neighbor.png" target="_blank">full-res</a></span>
-          </figcaption>
-        </figure>
-
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/warping_bilinear.png" alt="Visualization: Bilinear warping montage" loading="lazy">
-          </div>
-          <figcaption>
-            Visualization — Bilinear
-            <span class="mini-links"><a href="./media/warping_bilinear.png" target="_blank">full-res</a></span>
-          </figcaption>
-        </figure>
-      </div>
-
-      <div class="card" style="margin-top:16px">
-        <h3 style="margin:0 0 8px">Context: Reference frame</h3>
-        <div class="grid">
-          <figure>
-            <div class="imgwrap">
-              <img src="./media/IMG_9771.JPG" alt="Reference frame IMG_9771">
-            </div>
-            <figcaption>Reference — <strong>IMG_9771</strong> <span class="mini-links"><a href="./media/IMG_9771.JPG" target="_blank">full-res</a></span></figcaption>
-          </figure>
-          <figure>
-            <div class="imgwrap">
-              <img src="./media/IMG_9770.JPG" alt="Source frame IMG_9770">
-            </div>
-            <figcaption>Source — <strong>IMG_9770</strong> <span class="mini-links"><a href="./media/IMG_9770.JPG" target="_blank">full-res</a></span></figcaption>
-          </figure>
-        </div>
-        <p class="note" style="margin:10px 0 0">
-          Warped results align source content into the reference viewpoint; minor seams/overlaps are expected before blending.
-        </p>
-      </div>
-    </section>
-
-    <div class="hr"></div>
-
-    <!-- Rectification -->
-    <section class="section">
-      <h2>Planar Rectification (Compare & Contrast)</h2>
-
-      <div class="grid">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/rectification_pot.png" alt="Rectification montage for pot">
-          </div>
-          <figcaption>
-            Montage — pot.JPG
-            <span class="mini-links">
-              <a href="./media/rectification_pot.png" target="_blank">figure</a>
-              <a href="./media/rectified_pot.jpg" target="_blank">rectified</a>
-            </span>
-          </figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/rectification_sign.png" alt="Rectification montage for sign">
-          </div>
-          <figcaption>
-            Montage — sign.JPG
-            <span class="mini-links">
-              <a href="./media/rectification_sign.png" target="_blank">figure</a>
-              <a href="./media/rectified_sign.jpg" target="_blank">rectified</a>
-            </span>
-          </figcaption>
-        </figure>
-      </div>
-
-      <div class="grid" style="margin-top:16px">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/pot.JPG" alt="Original pot">
-          </div>
-          <figcaption>Original — pot.JPG <span class="mini-links"><a href="./media/pot.JPG" target="_blank">full-res</a></span></figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/rectified_pot.jpg" alt="Rectified pot (frontalized)">
-          </div>
-          <figcaption>Rectified — pot (500×400) <span class="mini-links"><a href="./media/rectified_pot.jpg" target="_blank">full-res</a></span></figcaption>
-        </figure>
-
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/sign.JPG" alt="Original sign">
-          </div>
-          <figcaption>Original — sign.JPG <span class="mini-links"><a href="./media/sign.JPG" target="_blank">full-res</a></span></figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/rectified_sign.jpg" alt="Rectified sign (frontalized)">
-          </div>
-          <figcaption>Rectified — sign (500×400) <span class="mini-links"><a href="./media/rectified_sign.jpg" target="_blank">full-res</a></span></figcaption>
-        </figure>
-      </div>
-      <p class="note" style="margin-top:10px">
-        Rectified views have fixed rectangular output size; side-by-side is shown (sliders aren’t used due to different image dimensions).
+    <!-- =========================
+         A.2 — HOMOGRAPHY
+         ========================= -->
+    <section class="card" id="a2">
+      <h2>A.2 — Point Correspondences & Homography Estimation</h2>
+      <p>
+        I estimate a projective homography <code>H</code> from at least four 2D correspondences using a linear least-squares system.
+        For each match \((x,y)\mapsto(x',y')\) we linearize
+        \(x'=\frac{h_{00}x+h_{01}y+h_{02}}{h_{20}x+h_{21}y+h_{22}}\),
+        \(y'=\frac{h_{10}x+h_{11}y+h_{12}}{h_{20}x+h_{21}y+h_{22}}\),
+        fix \(h_{22}=1\), and solve for the remaining 8 unknowns with <code>scipy.linalg.lstsq</code>.
       </p>
+      <div class="grid two">
+        <figure><img src="media/IMG_9770.JPG" alt="Original IMG_9770"><figcaption>Original Source — <strong>IMG_9770</strong></figcaption></figure>
+        <figure><img src="media/IMG_9771.JPG" alt="Original IMG_9771"><figcaption>Original Reference — <strong>IMG_9771</strong></figcaption></figure>
+      </div>
+      <div class="grid two" style="margin-top:.8rem">
+        <figure><img src="media/correspondences.png" alt="Labeled correspondences"><figcaption>Labeled point correspondences used to solve for <code>H</code>.</figcaption></figure>
+        <div class="why">
+          <p><strong>Approach details:</strong> Build matrix <code>A</code> (2 rows per correspondence) and vector <code>b</code>, solve <code>A·h ≈ b</code>. I then form</p>
+          <pre>H = [[h00, h01, h02],
+     [h10, h11, h12],
+     [h20, h21, 1.0]]</pre>
+          <p>After computing <code>H</code>, I verify by projecting each source point and reporting average reprojection error.</p>
+        </div>
+      </div>
     </section>
 
     <div class="hr"></div>
 
-    <!-- A.4 -->
-    <section class="section">
-      <h2>A.4 — Image Mosaicing</h2>
-      <p class="note">Feathered alpha blending on a union canvas. I include both the final mosaic and its visualization for each pair, plus original inputs for comparison.</p>
+    <!-- =========================
+         A.3 — WARPING
+         ========================= -->
+    <section class="card" id="a3">
+      <h2>A.3 — Inverse Warping (Nearest Neighbor vs Bilinear)</h2>
+      <p>
+        I perform <em>inverse</em> warping: for each pixel in the output canvas, map its coordinates back via <code>H⁻¹</code> into the source, then sample.
+        I implement two interpolations:
+        <strong>Nearest Neighbor</strong> (fast, aliased edges) and <strong>Bilinear</strong> (smooth, less aliasing).
+      </p>
 
-      <!-- Pair 1 -->
-      <h3>Pair 1 — <code>9770_9771</code></h3>
-      <div class="grid">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/mosaic_9770_9771.jpg" alt="Final mosaic 9770_9771">
-          </div>
-          <figcaption>Final mosaic <span class="mini-links"><a href="./media/mosaic_9770_9771.jpg" target="_blank">full-res</a></span></figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/mosaic_9770_9771_visualization.png" alt="Visualization 9770_9771">
-          </div>
-          <figcaption>Visualization <span class="mini-links"><a href="./media/mosaic_9770_9771_visualization.png" target="_blank">full-res</a></span></figcaption>
-        </figure>
-      </div>
-      <div class="grid" style="margin-top:10px">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/IMG_9770.JPG" alt="Original 9770">
-          </div>
-          <figcaption>Original — IMG_9770 <span class="mini-links"><a href="./media/IMG_9770.JPG" target="_blank">full-res</a></span></figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/IMG_9771.JPG" alt="Original 9771">
-          </div>
-          <figcaption>Original — IMG_9771 <span class="mini-links"><a href="./media/IMG_9771.JPG" target="_blank">full-res</a></span></figcaption>
-        </figure>
+      <h3 style="margin-top:.5rem">Direct Comparison (Warped IMG_9770 → IMG_9771’s frame)</h3>
+      <div class="grid two">
+        <figure><img src="media/warped_im1_nearest_neighbor.jpg" alt="Warped NN"><figcaption>Warped with <strong>Nearest Neighbor</strong></figcaption></figure>
+        <figure><img src="media/warped_im1_bilinear.jpg" alt="Warped Bilinear"><figcaption>Warped with <strong>Bilinear</strong></figcaption></figure>
       </div>
 
-      <!-- Pair 2 -->
-      <h3 style="margin-top:22px">Pair 2 — <code>9772_9773</code></h3>
-      <div class="grid">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/mosaic_9772_9773.jpg" alt="Final mosaic 9772_9773">
-          </div>
-          <figcaption>Final mosaic <span class="mini-links"><a href="./media/mosaic_9772_9773.jpg" target="_blank">full-res</a></span></figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/mosaic_9772_9773_visualization.png" alt="Visualization 9772_9773">
-          </div>
-          <figcaption>Visualization <span class="mini-links"><a href="./media/mosaic_9772_9773_visualization.png" target="_blank">full-res</a></span></figcaption>
-        </figure>
+      <h3 style="margin-top:1rem">Montage Visualizations</h3>
+      <div class="grid two">
+        <figure><img src="media/warping_nearest_neighbor.png" alt="NN montage"><figcaption>Originals + NN warp montage</figcaption></figure>
+        <figure><img src="media/warping_bilinear.png" alt="Bilinear montage"><figcaption>Originals + Bilinear warp montage</figcaption></figure>
       </div>
 
-      <!-- Pair 3 -->
-      <h3 style="margin-top:22px">Pair 3 — <code>9782_9783</code></h3>
-      <div class="grid">
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/mosaic_9782_9783.jpg" alt="Final mosaic 9782_9783">
-          </div>
-          <figcaption>Final mosaic <span class="mini-links"><a href="./media/mosaic_9782_9783.jpg" target="_blank">full-res</a></span></figcaption>
-        </figure>
-        <figure>
-          <div class="imgwrap">
-            <img src="./media/mosaic_9782_9783_visualization.png" alt="Visualization 9782_9783">
-          </div>
-          <figcaption>Visualization <span class="mini-links"><a href="./media/mosaic_9782_9783_visualization.png" target="_blank">full-res</a></span></figcaption>
-        </figure>
+      <div class="why" style="margin-top:.8rem">
+        <strong>Observation:</strong> NN preserves crisp pixel edges but introduces stair-stepping on slanted lines; Bilinear reduces aliasing at the cost of slight blur (expected).
       </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <!-- =========================
+         RECTIFICATION
+         ========================= -->
+    <section class="card" id="rectification">
+      <h2>Planar Rectification</h2>
+      <p>
+        Given 4 user-clicked corners of a planar rectangle in the image, I compute a homography that maps them to an axis-aligned rectangle
+        (here 500×400), producing a <em>fronto-parallel</em> view.
+      </p>
+
+      <div class="grid two">
+        <figure><img src="media/rectification_pot.png" alt="Pot rectification montage"><figcaption>Rectification montage — <strong>pot.JPG</strong> (selected corners → target rectangle → rectified)</figcaption></figure>
+        <figure><img src="media/rectification_sign.png" alt="Sign rectification montage"><figcaption>Rectification montage — <strong>sign.JPG</strong></figcaption></figure>
+      </div>
+
+      <div class="grid two" style="margin-top:.8rem">
+        <figure><img src="media/pot.JPG" alt="Original pot"><figcaption>Original — pot.JPG</figcaption></figure>
+        <figure><img src="media/rectified_pot.jpg" alt="Rectified pot"><figcaption>Rectified — pot (500×400)</figcaption></figure>
+      </div>
+
+      <div class="grid two" style="margin-top:.8rem">
+        <figure><img src="media/sign.JPG" alt="Original sign"><figcaption>Original — sign.JPG</figcaption></figure>
+        <figure><img src="media/rectified_sign.jpg" alt="Rectified sign"><figcaption>Rectified — sign (500×400)</figcaption></figure>
+      </div>
+
+      <div class="why" style="margin-top:.8rem">
+        <strong>Approach details:</strong> compute <code>H = computeH(rect_pts, target_pts)</code>, then inverse-warp using Bilinear interpolation to the target size.
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <!-- =========================
+         A.4 — MOSAICS
+         ========================= -->
+    <section class="card" id="a4">
+      <h2>A.4 — Mosaicing with Feathered Blending</h2>
+      <p>
+        I create a <em>union canvas</em> large enough to hold the reference image and the warped source.
+        I translate coordinates to positive space, warp image 1 with <code>H</code> into this canvas, then apply <em>feathered alpha blending</em>:
+        alphas fall linearly toward each image’s edges to reduce seams. This keeps the mosaic relatively seamless while preserving structure.
+      </p>
+
+      <h3>Pair 1 — 9770_9771</h3>
+      <div class="grid two">
+        <figure><img src="media/mosaic_9770_9771.jpg" alt="Mosaic 9770_9771"><figcaption>Final mosaic</figcaption></figure>
+        <figure><img src="media/mosaic_9770_9771_visualization.png" alt="Mosaic viz 9770_9771"><figcaption>Visualization (inputs, warp, blend)</figcaption></figure>
+      </div>
+      <div class="grid two" style="margin-top:.6rem">
+        <figure><img src="media/IMG_9770.JPG" alt="Original 9770"><figcaption>Original — IMG_9770</figcaption></figure>
+        <figure><img src="media/IMG_9771.JPG" alt="Original 9771"><figcaption>Original — IMG_9771</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Pair 2 — 9772_9773</h3>
+      <div class="grid two">
+        <figure><img src="media/mosaic_9772_9773.jpg" alt="Mosaic 9772_9773"><figcaption>Final mosaic</figcaption></figure>
+        <figure><img src="media/mosaic_9772_9773_visualization.png" alt="Mosaic viz 9772_9773"><figcaption>Visualization</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Pair 3 — 9782_9783</h3>
+      <div class="grid two">
+        <figure><img src="media/mosaic_9782_9783.jpg" alt="Mosaic 9782_9783"><figcaption>Final mosaic</figcaption></figure>
+        <figure><img src="media/mosaic_9782_9783_visualization.png" alt="Mosaic viz 9782_9783"><figcaption>Visualization</figcaption></figure>
+      </div>
+
+      <div class="why" style="margin-top:.8rem">
+        <strong>Notes on sharpness:</strong> The pipeline avoids any downscaling; warps use full resolution.
+        NN can look sharper but aliasy; Bilinear is smoother (slightly softer edges) but avoids jaggies.
+        Feather weights (<code>center=1.0</code>, <code>edge≈0.2</code>) reduce exposure/illumination seams at overlaps.
+      </div>
+    </section>
+
+    <section class="card" id="reflection">
+      <h2>Key Takeaways</h2>
+      <ul style="margin:.3rem 0 .2rem">
+        <li><strong>Homography quality</strong> is dominated by good, well-spread correspondences (include corners and points near the image periphery).</li>
+        <li><strong>Inverse warping</strong> eliminates holes and makes interpolation explicit and controllable.</li>
+        <li><strong>Feathered blending</strong> is a simple, effective baseline for mosaics; exposure compensation or multi-band blending can further reduce seams.</li>
+      </ul>
     </section>
 
     <footer>
@@ -352,18 +201,6 @@ Average error:  .  pixels
       <p>© <span id="year"></span> Raymond Wang • <a href="https://raymond23101.github.io">raymond23101.github.io</a></p>
     </footer>
   </div>
-
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-
-    // simple compare slider
-    document.querySelectorAll('[data-compare]').forEach(comp => {
-      const topPane = comp.querySelector('.top');
-      const range = comp.querySelector('input[type="range"]');
-      const setSplit = (v) => { topPane.style.width = v + '%'; };
-      setSplit(range.value);
-      range.addEventListener('input', e => setSplit(e.target.value));
-    });
-  </script>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
