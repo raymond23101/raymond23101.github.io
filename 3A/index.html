@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project 3A — Homographies, Warping & Mosaics (CS180)</title>
-  <meta name="description" content="A.2 homography from correspondences, A.3 inverse warping (NN/Bilinear) + rectification, and A.4 feathered mosaicing." />
+  <title>Project 3A — Image Warping & Mosaicing (CS180)</title>
+  <meta name="description" content="A.1–A.4: Shoot images, recover homographies, warp (NN/Bilinear) with rectification, and blend mosaics." />
   <style>
     :root{
       --bg:#f5f9ff; --ink:#0e1b2c; --muted:#5a6b82;
@@ -25,24 +25,17 @@
     .grid{display:grid; gap:14px}
     .two{grid-template-columns:1fr}
     .three{grid-template-columns:1fr}
-    .four{grid-template-columns:1fr}
-    @media(min-width:780px){
-      .two{grid-template-columns:1fr 1fr}
-      .three{grid-template-columns:1fr 1fr 1fr}
-      .four{grid-template-columns:1fr 1fr 1fr 1fr}
-    }
+    @media(min-width:780px){ .two{grid-template-columns:1fr 1fr} .three{grid-template-columns:1fr 1fr 1fr} }
 
     figure{margin:0}
     img{width:100%; height:auto; display:block; border-radius:14px; border:1px solid var(--border)}
     figcaption{margin-top:.4rem; color:var(--muted); font-size:.95rem}
     h2{margin:.25rem 0 .65rem; font-size:1.3rem}
     h3{margin:.25rem 0 .4rem; font-size:1.05rem}
-    .why{border-left:3px solid var(--accent); padding:.5rem .75rem; background:rgba(59,130,246,.06); border-radius:.5rem}
     .hr{height:1px; background:var(--border); margin:1.5rem 0}
     footer{margin-top:2rem; color:var(--muted); font-size:.95rem}
-    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; background:#eef4ff; border:1px solid #d7e5ff; padding:2px 6px; border-radius:6px}
-    code{background:#f3f6ff; border:1px solid #e6edf7; padding:.1rem .3rem; border-radius:6px}
-    pre{background:#f3f6ff; border:1px solid #e6edf7; padding:.6rem .75rem; border-radius:10px; overflow:auto}
+    pre{background:#f3f6ff; border:1px solid #e6edf7; padding:.6rem .75rem; border-radius:10px; overflow:auto; font-size:.92rem; line-height:1.35}
+    code{background:#eef4ff; border:1px solid #d7e5ff; padding:.1rem .25rem; border-radius:6px}
     @media print{ body{padding:0; background:#fff} .card{box-shadow:none} a[href]:after{content:""} }
   </style>
 </head>
@@ -50,150 +43,170 @@
   <div class="wrap">
     <header>
       <a href="/">← Back to Home</a>
-      <h1>Project 3A — Homographies, Warping & Mosaics</h1>
-      <span class="pill">CS180</span>
-      <p style="margin:.5rem 0 0; color:var(--muted)">All figures below are displayed directly on the page (no zoom needed). Source & result assets live in <code>3A/media/</code>.</p>
+      <h1>Programming Project #3 (proj3A) — Image Warping & Mosaicing</h1>
+      <span class="pill">CS180/280A</span>
+      <p style="margin:.4rem 0 0; color:var(--muted)">
+        First part of a larger project. We take overlapping photos and create mosaics by registering, projective warping, resampling, and compositing.
+        We compute homographies from correspondences and use them for inverse warping (nearest neighbor & bilinear), plus planar rectification.
+        All images below are shown directly on the page; assets are under <code>3A/media/</code>.
+      </p>
     </header>
 
-    <!-- =========================
-         A.2 — HOMOGRAPHY
-         ========================= -->
-    <section class="card" id="a2">
-      <h2>A.2 — Point Correspondences & Homography Estimation</h2>
+    <!-- ========= A.1 ========= -->
+    <section class="card" id="a1">
+      <h2>A.1 — Shoot & Digitize Pictures</h2>
       <p>
-        I estimate a projective homography <code>H</code> from at least four 2D correspondences using a linear least-squares system.
-        For each match \((x,y)\mapsto(x',y')\) we linearize
-        \(x'=\frac{h_{00}x+h_{01}y+h_{02}}{h_{20}x+h_{21}y+h_{22}}\),
-        \(y'=\frac{h_{10}x+h_{11}y+h_{12}}{h_{20}x+h_{21}y+h_{22}}\),
-        fix \(h_{22}=1\), and solve for the remaining 8 unknowns with <code>scipy.linalg.lstsq</code>.
+        We captured overlapping views from (approximately) a fixed center of projection by rotating the camera. Below are three example pairs used later.
       </p>
+      <h3>Set 1</h3>
       <div class="grid two">
-        <figure><img src="media/IMG_9770.JPG" alt="Original IMG_9770"><figcaption>Original Source — <strong>IMG_9770</strong></figcaption></figure>
-        <figure><img src="media/IMG_9771.JPG" alt="Original IMG_9771"><figcaption>Original Reference — <strong>IMG_9771</strong></figcaption></figure>
+        <figure><img src="media/IMG_9770.JPG" alt="IMG_9770"><figcaption>IMG_9770</figcaption></figure>
+        <figure><img src="media/IMG_9771.JPG" alt="IMG_9771"><figcaption>IMG_9771</figcaption></figure>
       </div>
-      <div class="grid two" style="margin-top:.8rem">
-        <figure><img src="media/correspondences.png" alt="Labeled correspondences"><figcaption>Labeled point correspondences used to solve for <code>H</code>.</figcaption></figure>
-        <div class="why">
-          <p><strong>Approach details:</strong> Build matrix <code>A</code> (2 rows per correspondence) and vector <code>b</code>, solve <code>A·h ≈ b</code>. I then form</p>
-          <pre>H = [[h00, h01, h02],
-     [h10, h11, h12],
-     [h20, h21, 1.0]]</pre>
-          <p>After computing <code>H</code>, I verify by projecting each source point and reporting average reprojection error.</p>
-        </div>
+      <h3 style="margin-top:1rem">Set 2</h3>
+      <div class="grid two">
+        <figure><img src="media/IMG_9772.JPG" alt="IMG_9772"><figcaption>IMG_9772</figcaption></figure>
+        <figure><img src="media/IMG_9773.JPG" alt="IMG_9773"><figcaption>IMG_9773</figcaption></figure>
+      </div>
+      <h3 style="margin-top:1rem">Set 3</h3>
+      <div class="grid two">
+        <figure><img src="media/IMG_9782.JPG" alt="IMG_9782"><figcaption>IMG_9782</figcaption></figure>
+        <figure><img src="media/IMG_9783.JPG" alt="IMG_9783"><figcaption>IMG_9783</figcaption></figure>
       </div>
     </section>
 
-    <div class="hr"></div>
-
-    <!-- =========================
-         A.3 — WARPING
-         ========================= -->
-    <section class="card" id="a3">
-      <h2>A.3 — Inverse Warping (Nearest Neighbor vs Bilinear)</h2>
+    <!-- ========= A.2 ========= -->
+    <section class="card" id="a2">
+      <h2>A.2 — Recover Homographies</h2>
       <p>
-        I perform <em>inverse</em> warping: for each pixel in the output canvas, map its coordinates back via <code>H⁻¹</code> into the source, then sample.
-        I implement two interpolations:
-        <strong>Nearest Neighbor</strong> (fast, aliased edges) and <strong>Bilinear</strong> (smooth, less aliasing).
+        We solve a linear least-squares system for the 8 unknowns of the 3×3 homography <code>H</code> (with <code>h22 = 1</code>) using ≥ 4 correspondences.
+        Each correspondence contributes two equations; stacking them yields <code>A · h ≈ b</code>, solved with <code>scipy.linalg.lstsq</code>.
       </p>
 
-      <h3 style="margin-top:.5rem">Direct Comparison (Warped IMG_9770 → IMG_9771’s frame)</h3>
+      <div class="grid two">
+        <figure><img src="media/correspondences.png" alt="Point correspondences">
+          <figcaption>Visualized correspondences used to compute <code>H</code> (9770 ↔ 9771).</figcaption>
+        </figure>
+        <figure>
+          <img src="media/IMG_9771.JPG" alt="Reference frame">
+          <figcaption>Reference frame (target of the warp).</figcaption>
+        </figure>
+      </div>
+
+      <div class="hr"></div>
+
+      <h3>Linear System <code>A · h = b</code></h3>
+      <pre>
+For each match (x, y) → (x', y'), the homography equations are:
+  x' = (h00 x + h01 y + h02) / (h20 x + h21 y + 1)
+  y' = (h10 x + h11 y + h12) / (h20 x + h21 y + 1)
+
+Rearranged into linear form (two rows per point):
+  [ x  y  1   0  0  0  -x'·x  -x'·y ] · h = x'
+  [ 0  0  0   x  y  1  -y'·x  -y'·y ] · h = y'
+
+Unknown vector (8×1):
+  h = [ h00, h01, h02,  h10, h11, h12,  h20, h21 ]ᵀ
+
+We stack all rows for n correspondences into A (2n × 8) and b (2n × 1), then solve:
+  minimize ||A·h - b||₂  via least squares.
+      </pre>
+
+      <h3>Recovered Homography Structure</h3>
+      <pre>
+H =
+[ h00  h01  h02
+  h10  h11  h12
+  h20  h21   1 ]
+      </pre>
+    </section>
+
+    <!-- ========= A.3 ========= -->
+    <section class="card" id="a3">
+      <h2>A.3 — Warp the Images (Inverse Warping)</h2>
+      <p>
+        We inverse-map output pixels through <code>H⁻¹</code> into the source and sample with two custom interpolants:
+        <strong>Nearest Neighbor</strong> (round to nearest pixel) and <strong>Bilinear</strong> (weighted average of the 4 neighbors).
+        We also support planar rectification from 4 user-clicked corners to a known rectangle.
+      </p>
+
+      <h3>Warped IMG_9770 → IMG_9771</h3>
       <div class="grid two">
         <figure><img src="media/warped_im1_nearest_neighbor.jpg" alt="Warped NN"><figcaption>Warped with <strong>Nearest Neighbor</strong></figcaption></figure>
         <figure><img src="media/warped_im1_bilinear.jpg" alt="Warped Bilinear"><figcaption>Warped with <strong>Bilinear</strong></figcaption></figure>
       </div>
 
-      <h3 style="margin-top:1rem">Montage Visualizations</h3>
+      <h3 style="margin-top:1rem">Montages</h3>
       <div class="grid two">
-        <figure><img src="media/warping_nearest_neighbor.png" alt="NN montage"><figcaption>Originals + NN warp montage</figcaption></figure>
-        <figure><img src="media/warping_bilinear.png" alt="Bilinear montage"><figcaption>Originals + Bilinear warp montage</figcaption></figure>
+        <figure><img src="media/warping_nearest_neighbor.png" alt="NN montage"><figcaption>Originals + NN warp</figcaption></figure>
+        <figure><img src="media/warping_bilinear.png" alt="Bilinear montage"><figcaption>Originals + Bilinear warp</figcaption></figure>
       </div>
 
-      <div class="why" style="margin-top:.8rem">
-        <strong>Observation:</strong> NN preserves crisp pixel edges but introduces stair-stepping on slanted lines; Bilinear reduces aliasing at the cost of slight blur (expected).
-      </div>
-    </section>
-
-    <div class="hr"></div>
-
-    <!-- =========================
-         RECTIFICATION
-         ========================= -->
-    <section class="card" id="rectification">
-      <h2>Planar Rectification</h2>
-      <p>
-        Given 4 user-clicked corners of a planar rectangle in the image, I compute a homography that maps them to an axis-aligned rectangle
-        (here 500×400), producing a <em>fronto-parallel</em> view.
-      </p>
-
+      <div class="hr"></div>
+      <h3>Rectification Examples (2+)</h3>
       <div class="grid two">
-        <figure><img src="media/rectification_pot.png" alt="Pot rectification montage"><figcaption>Rectification montage — <strong>pot.JPG</strong> (selected corners → target rectangle → rectified)</figcaption></figure>
-        <figure><img src="media/rectification_sign.png" alt="Sign rectification montage"><figcaption>Rectification montage — <strong>sign.JPG</strong></figcaption></figure>
+        <figure><img src="media/rectification_pot.png" alt="Pot rectification montage">
+          <figcaption>Rectification montage — pot.JPG (click 4 corners → map to 500×400)</figcaption>
+        </figure>
+        <figure><img src="media/rectification_sign.png" alt="Sign rectification montage">
+          <figcaption>Rectification montage — sign.JPG</figcaption>
+        </figure>
       </div>
-
       <div class="grid two" style="margin-top:.8rem">
         <figure><img src="media/pot.JPG" alt="Original pot"><figcaption>Original — pot.JPG</figcaption></figure>
         <figure><img src="media/rectified_pot.jpg" alt="Rectified pot"><figcaption>Rectified — pot (500×400)</figcaption></figure>
       </div>
-
       <div class="grid two" style="margin-top:.8rem">
         <figure><img src="media/sign.JPG" alt="Original sign"><figcaption>Original — sign.JPG</figcaption></figure>
         <figure><img src="media/rectified_sign.jpg" alt="Rectified sign"><figcaption>Rectified — sign (500×400)</figcaption></figure>
       </div>
 
-      <div class="why" style="margin-top:.8rem">
-        <strong>Approach details:</strong> compute <code>H = computeH(rect_pts, target_pts)</code>, then inverse-warp using Bilinear interpolation to the target size.
-      </div>
+      <p style="margin-top:.6rem; color:var(--muted)">
+        <strong>Comparison:</strong> NN is crisper but can show jaggies; Bilinear reduces aliasing with slight softness. Both use alpha masks to mark valid samples.
+      </p>
     </section>
 
-    <div class="hr"></div>
-
-    <!-- =========================
-         A.4 — MOSAICS
-         ========================= -->
+    <!-- ========= A.4 ========= -->
     <section class="card" id="a4">
-      <h2>A.4 — Mosaicing with Feathered Blending</h2>
+      <h2>A.4 — Blend Images into a Mosaic</h2>
       <p>
-        I create a <em>union canvas</em> large enough to hold the reference image and the warped source.
-        I translate coordinates to positive space, warp image 1 with <code>H</code> into this canvas, then apply <em>feathered alpha blending</em>:
-        alphas fall linearly toward each image’s edges to reduce seams. This keeps the mosaic relatively seamless while preserving structure.
+        We build a union canvas, translate coordinates positive, warp source into this canvas with <code>H</code>, and blend with simple
+        feathered alpha (weights taper toward image borders). Below we show the source images and final mosaics for three pairs.
       </p>
 
-      <h3>Pair 1 — 9770_9771</h3>
+      <h3>Pair 1 — 9770 ↔ 9771</h3>
       <div class="grid two">
-        <figure><img src="media/mosaic_9770_9771.jpg" alt="Mosaic 9770_9771"><figcaption>Final mosaic</figcaption></figure>
-        <figure><img src="media/mosaic_9770_9771_visualization.png" alt="Mosaic viz 9770_9771"><figcaption>Visualization (inputs, warp, blend)</figcaption></figure>
+        <figure><img src="media/IMG_9770.JPG" alt="9770"><figcaption>Source — IMG_9770</figcaption></figure>
+        <figure><img src="media/IMG_9771.JPG" alt="9771"><figcaption>Reference — IMG_9771</figcaption></figure>
       </div>
-      <div class="grid two" style="margin-top:.6rem">
-        <figure><img src="media/IMG_9770.JPG" alt="Original 9770"><figcaption>Original — IMG_9770</figcaption></figure>
-        <figure><img src="media/IMG_9771.JPG" alt="Original 9771"><figcaption>Original — IMG_9771</figcaption></figure>
+      <div class="grid two" style="margin-top:.8rem">
+        <figure><img src="media/mosaic_9770_9771.jpg" alt="Mosaic 9770_9771"><figcaption>Final mosaic (feathered blend)</figcaption></figure>
+        <figure><img src="media/mosaic_9770_9771_visualization.png" alt="Viz 9770_9771"><figcaption>Visualization (inputs, warp, blend)</figcaption></figure>
       </div>
 
-      <h3 style="margin-top:1rem">Pair 2 — 9772_9773</h3>
+      <h3 style="margin-top:1rem">Pair 2 — 9772 ↔ 9773</h3>
       <div class="grid two">
+        <figure><img src="media/IMG_9772.JPG" alt="9772"><figcaption>Source — IMG_9772</figcaption></figure>
+        <figure><img src="media/IMG_9773.JPG" alt="9773"><figcaption>Reference — IMG_9773</figcaption></figure>
+      </div>
+      <div class="grid two" style="margin-top:.8rem">
         <figure><img src="media/mosaic_9772_9773.jpg" alt="Mosaic 9772_9773"><figcaption>Final mosaic</figcaption></figure>
-        <figure><img src="media/mosaic_9772_9773_visualization.png" alt="Mosaic viz 9772_9773"><figcaption>Visualization</figcaption></figure>
+        <figure><img src="media/mosaic_9772_9773_visualization.png" alt="Viz 9772_9773"><figcaption>Visualization</figcaption></figure>
       </div>
 
-      <h3 style="margin-top:1rem">Pair 3 — 9782_9783</h3>
+      <h3 style="margin-top:1rem">Pair 3 — 9782 ↔ 9783</h3>
       <div class="grid two">
+        <figure><img src="media/IMG_9782.JPG" alt="9782"><figcaption>Source — IMG_9782</figcaption></figure>
+        <figure><img src="media/IMG_9783.JPG" alt="9783"><figcaption>Reference — IMG_9783</figcaption></figure>
+      </div>
+      <div class="grid two" style="margin-top:.8rem">
         <figure><img src="media/mosaic_9782_9783.jpg" alt="Mosaic 9782_9783"><figcaption>Final mosaic</figcaption></figure>
-        <figure><img src="media/mosaic_9782_9783_visualization.png" alt="Mosaic viz 9782_9783"><figcaption>Visualization</figcaption></figure>
+        <figure><img src="media/mosaic_9782_9783_visualization.png" alt="Viz 9782_9783"><figcaption>Visualization</figcaption></figure>
       </div>
 
-      <div class="why" style="margin-top:.8rem">
-        <strong>Notes on sharpness:</strong> The pipeline avoids any downscaling; warps use full resolution.
-        NN can look sharper but aliasy; Bilinear is smoother (slightly softer edges) but avoids jaggies.
-        Feather weights (<code>center=1.0</code>, <code>edge≈0.2</code>) reduce exposure/illumination seams at overlaps.
-      </div>
-    </section>
-
-    <section class="card" id="reflection">
-      <h2>Key Takeaways</h2>
-      <ul style="margin:.3rem 0 .2rem">
-        <li><strong>Homography quality</strong> is dominated by good, well-spread correspondences (include corners and points near the image periphery).</li>
-        <li><strong>Inverse warping</strong> eliminates holes and makes interpolation explicit and controllable.</li>
-        <li><strong>Feathered blending</strong> is a simple, effective baseline for mosaics; exposure compensation or multi-band blending can further reduce seams.</li>
-      </ul>
+      <p style="margin-top:.6rem; color:var(--muted)">
+        <strong>Procedure:</strong> predict warped bounds → make union canvas → translate <code>H</code> with a shift matrix → inverse-warp source → feathered blend with reference.
+      </p>
     </section>
 
     <footer>
