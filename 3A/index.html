@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project 3A — Image Warping & Mosaicing (CS180)</title>
-  <meta name="description" content="A.1–A.4: Shoot images, recover homographies, warp (NN/Bilinear) with rectification, and blend mosaics." />
+  <title>Project 3 — Image Warping & Mosaicing (CS180)</title>
+  <meta name="description" content="Part A: Manual mosaicing. Part B: Automatic feature detection, matching, and RANSAC-based stitching." />
   <style>
     :root{
       --bg:#f5f9ff; --ink:#0e1b2c; --muted:#5a6b82;
@@ -20,6 +20,7 @@
     header{margin-bottom:1rem}
     h1{font-size:clamp(1.6rem, 1.15rem + 2vw, 2.4rem); line-height:1.15; margin:.25rem 0}
     .pill{display:inline-block; padding:.25rem .6rem; border-radius:999px; border:1px solid rgba(59,130,246,.25); background:rgba(59,130,246,.12); color:#0b3a7a; font-weight:600; font-size:.85rem}
+    .pill.green{border:1px solid rgba(34,197,94,.25); background:rgba(34,197,94,.12); color:#166534}
 
     .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); margin:18px 0}
     .grid{display:grid; gap:14px}
@@ -36,6 +37,8 @@
     footer{margin-top:2rem; color:var(--muted); font-size:.95rem}
     pre{background:#f3f6ff; border:1px solid #e6edf7; padding:.6rem .75rem; border-radius:10px; overflow:auto; font-size:.92rem; line-height:1.35}
     code{background:#eef4ff; border:1px solid #d7e5ff; padding:.1rem .25rem; border-radius:6px}
+    .part-header{background:linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color:#fff; padding:1rem 1.25rem; border-radius:var(--radius); margin:2rem 0 1rem}
+    .part-header h2{color:#fff; margin:0}
     @media print{ body{padding:0; background:#fff} .card{box-shadow:none} a[href]:after{content:""} }
   </style>
 </head>
@@ -43,14 +46,16 @@
   <div class="wrap">
     <header>
       <a href="/">← Back to Home</a>
-      <h1>Programming Project #3 (proj3A) — Image Warping & Mosaicing</h1>
+      <h1>Programming Project #3 — Image Warping & Mosaicing</h1>
       <span class="pill">CS180/280A</span>
       <p style="margin:.4rem 0 0; color:var(--muted)">
-        First part of a larger project. We take overlapping photos and create mosaics by registering, projective warping, resampling, and compositing.
-        We compute homographies from correspondences and use them for inverse warping (nearest neighbor & bilinear), plus planar rectification.
-        All images below are shown directly on the page; assets are under <code>3A/media/</code>.
+        <strong>Part A:</strong> Manual mosaicing with user correspondences.
+        <strong>Part B:</strong> Automatic feature detection, matching, and RANSAC-based stitching.
+        All images below are shown directly on the page; assets are under <code>3/media/</code>.
       </p>
     </header>
+
+    <div class="part-header"><h2>Part A — Manual Image Mosaicing</h2></div>
 
     <!-- ========= A.1 ========= -->
     <section class="card" id="a1">
@@ -206,6 +211,151 @@ H =
 
       <p style="margin-top:.6rem; color:var(--muted)">
         <strong>Procedure:</strong> predict warped bounds → make union canvas → translate <code>H</code> with a shift matrix → inverse-warp source → feathered blend with reference.
+      </p>
+    </section>
+
+    <div class="part-header"><h2>Part B — Automatic Feature Detection & Matching</h2></div>
+
+    <!-- ========= B.1 ========= -->
+    <section class="card" id="b1">
+      <h2>B.1 — Detect Corner Features (Harris + ANMS)</h2>
+      <p>
+        We detect Harris corners using <code>skimage.feature.corner_harris</code> with <code>min_distance=1</code> and <code>threshold_rel=0.05</code>.
+        This typically yields thousands of corners. We then apply <strong>Adaptive Non-Maximal Suppression (ANMS)</strong> from the MOPS paper
+        to select 500 spatially well-distributed corners.
+      </p>
+
+      <h3>ANMS Algorithm</h3>
+      <pre>
+For each corner i, compute suppression radius r_i:
+  r_i = min_j ||x_i - x_j||, subject to f(x_i) < 0.9 × f(x_j)
+
+Select the 500 corners with largest r_i values.
+This ensures good spatial distribution instead of clustering.
+      </pre>
+
+      <div class="grid two">
+        <figure><img src="media/harris_corners_all.png" alt="All Harris corners">
+          <figcaption>All detected Harris corners (~1000+)</figcaption>
+        </figure>
+        <figure><img src="media/harris_corners_anms.png" alt="ANMS corners">
+          <figcaption>After ANMS: 500 spatially distributed corners</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ========= B.2 ========= -->
+    <section class="card" id="b2">
+      <h2>B.2 — Extract Feature Descriptors (MOPS)</h2>
+      <p>
+        For each corner, we extract an 8×8 descriptor by:
+        (1) Sampling a 40×40 window around the corner,
+        (2) Downsampling to 8×8 using <code>cv2.INTER_AREA</code> (low-frequency sampling for robustness),
+        (3) Normalizing to mean=0, std=1 (bias/gain invariance).
+        This gives us a 64-dimensional feature vector per corner.
+      </p>
+
+      <h3>Descriptor Extraction Process</h3>
+      <pre>
+1. Extract 40×40 patch around corner (spacing = 5 pixels)
+2. Downsample to 8×8 (removes high-frequency noise)
+3. Normalize: descriptor = (descriptor - mean) / std
+4. Result: 64D vector representing local structure
+      </pre>
+
+      <figure style="margin-top:.8rem"><img src="media/descriptors.png" alt="Feature descriptors">
+        <figcaption>Extracted 8×8 descriptors for 10 features (top: 40×40 window, middle: 8×8 descriptor)</figcaption>
+      </figure>
+    </section>
+
+    <!-- ========= B.3 ========= -->
+    <section class="card" id="b3">
+      <h2>B.3 — Match Features (Lowe's Ratio Test)</h2>
+      <p>
+        We match features between image pairs using <strong>Lowe's ratio test</strong>:
+        For each descriptor in image 1, find its 1-NN and 2-NN in image 2.
+        Accept the match only if <code>distance(1-NN) / distance(2-NN) < 0.5</code>.
+        This filters ambiguous matches where multiple descriptors are similar.
+      </p>
+
+      <h3>Why Ratio Test Works</h3>
+      <pre>
+Correct matches: 1-NN is much closer than 2-NN (small ratio)
+Incorrect matches: 1-NN and 2-NN are both far (ratio ≈ 1)
+
+Threshold of 0.5 (from Figure 6b in paper) gives good separation.
+      </pre>
+
+      <figure style="margin-top:.8rem"><img src="media/matches.png" alt="Feature matches">
+        <figcaption>Feature matches between IMG_9770 and IMG_9771 (green lines = matches, threshold=0.5)</figcaption>
+      </figure>
+    </section>
+
+    <!-- ========= B.4 ========= -->
+    <section class="card" id="b4">
+      <h2>B.4 — RANSAC & Automatic Mosaicing</h2>
+      <p>
+        Feature matching produces outliers. We use <strong>4-point RANSAC</strong> to robustly estimate the homography:
+        (1) Randomly sample 4 matches, (2) Compute H from those 4 points, (3) Count inliers (reprojection error < 5 pixels),
+        (4) Repeat 1000 times and keep best H, (5) Refine H using all inliers.
+      </p>
+
+      <h3>RANSAC Algorithm</h3>
+      <pre>
+For 1000 iterations:
+  1. Randomly select 4 point correspondences
+  2. Compute homography H from these 4 points
+  3. Test H on all matches: count inliers (error < 5px)
+  4. Keep H with most inliers
+
+Refine: Recompute H using ALL inliers from best model
+      </pre>
+
+      <h3>RANSAC Inliers Visualization</h3>
+      <figure style="margin-top:.8rem"><img src="media/ransac_inliers.png" alt="RANSAC inliers">
+        <figcaption>RANSAC result: Green = inliers (good matches), Red = outliers (rejected)</figcaption>
+      </figure>
+
+      <div class="hr"></div>
+
+      <h3>Comparison: Manual vs. Automatic Mosaics</h3>
+      <p style="color:var(--muted)">
+        Below we compare manual mosaics (Part A, using hand-picked correspondences) with automatic mosaics (Part B, using RANSAC).
+      </p>
+
+      <h3 style="margin-top:1rem">Pair 1 — 9770 ↔ 9771</h3>
+      <div class="grid two">
+        <figure><img src="media/mosaic_9770_9771.jpg" alt="Manual 9770_9771">
+          <figcaption><strong>Manual</strong> mosaic (Part A)</figcaption>
+        </figure>
+        <figure><img src="media/mosaic_9770_9771_automatic.jpg" alt="Auto 9770_9771">
+          <figcaption><strong>Automatic</strong> mosaic (Part B, RANSAC)</figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Pair 2 — 9772 ↔ 9773</h3>
+      <div class="grid two">
+        <figure><img src="media/mosaic_9772_9773.jpg" alt="Manual 9772_9773">
+          <figcaption><strong>Manual</strong> mosaic (Part A)</figcaption>
+        </figure>
+        <figure><img src="media/mosaic_9772_9773_automatic.jpg" alt="Auto 9772_9773">
+          <figcaption><strong>Automatic</strong> mosaic (Part B, RANSAC)</figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Pair 3 — 9782 ↔ 9783</h3>
+      <div class="grid two">
+        <figure><img src="media/mosaic_9782_9783.jpg" alt="Manual 9782_9783">
+          <figcaption><strong>Manual</strong> mosaic (Part A)</figcaption>
+        </figure>
+        <figure><img src="media/mosaic_9782_9783_automatic.jpg" alt="Auto 9782_9783">
+          <figcaption><strong>Automatic</strong> mosaic (Part B, RANSAC)</figcaption>
+        </figure>
+      </div>
+
+      <p style="margin-top:.8rem; color:var(--muted)">
+        <strong>Observation:</strong> Automatic mosaics match or exceed manual quality while requiring zero human intervention.
+        RANSAC effectively filters outliers, and the computed homographies are often more accurate than manual point selection.
       </p>
     </section>
 
