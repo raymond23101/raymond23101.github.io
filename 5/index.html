@@ -72,7 +72,7 @@
       </p>
 
       <figure>
-        <img src="media/proj5_0_1.png" alt="Generated samples">
+        <img src="media/proj5_0.1.png" alt="Generated samples">
         <figcaption>
           Three generated samples: "an oil painting of a snowy mountain village", 
           "a lithograph of waterfalls", and "a rocket ship"
@@ -107,7 +107,7 @@ where:
              
 
       <figure>
-        <img src="media/proj5_1_1.png" alt="Forward process">
+        <img src="media/proj5_1.1.png" alt="Forward process">
         <figcaption>
           Berkeley Campanile at different noise levels: Original, t=250, t=500, t=750
         </figcaption>
@@ -123,7 +123,7 @@ where:
             
 
       <figure>
-        <img src="media/proj5_1_2.png" alt="Gaussian blur denoising">
+        <img src="media/proj5_1.2.png" alt="Gaussian blur denoising">
         <figcaption>
           Top row: Noisy images at t=250, 500, 750<br>
           Bottom row: Gaussian blur denoised results (limited effectiveness)
@@ -139,7 +139,7 @@ where:
       </p>
 
       <figure>
-        <img src="media/proj5_1_3.png" alt="One-step denoising">
+        <img src="media/proj5_1.3.png" alt="One-step denoising">
         <figcaption>
           One-step denoising at t=250, 500, 750. Each triplet shows: Original, Noisy, One-step Denoised.
           Performance degrades at higher noise levels.
@@ -167,7 +167,7 @@ For each step i → i+1:
              
 
       <figure>
-        <img src="media/proj5_1_4.png" alt="Iterative denoising">
+        <img src="media/proj5_1.4.png" alt="Iterative denoising">
         <figcaption>
           Comparison of denoising methods: Original → Noisy (t=690) → Iterative DDPM → 
           One-step → Gaussian Blur. Iterative denoising produces the best results.
@@ -183,7 +183,7 @@ For each step i → i+1:
       </p>
 
       <figure>
-        <img src="media/proj5_1_5.png" alt="Sampling without CFG">
+        <img src="media/proj5_1.5.png" alt="Sampling without CFG">
         <figcaption>
           5 samples generated from pure Gaussian noise. Quality is moderate without classifier-free guidance.
         </figcaption>
@@ -208,7 +208,7 @@ For each denoising step:
              
 
       <figure>
-        <img src="media/proj5_1_6.png" alt="Sampling with CFG">
+        <img src="media/proj5_1.6.png" alt="Sampling with CFG">
         <figcaption>
           5 samples with CFG (scale=7). Dramatically improved quality compared to Part 1.5.
         </figcaption>
@@ -224,7 +224,7 @@ For each denoising step:
 
       <h3>Campanile Edits</h3>
       <figure>
-        <img src="media/proj5_1_7_ex1.png" alt="Campanile SDEdit">
+        <img src="media/proj5_1.7_ex1.png" alt="Campanile SDEdit">
         <figcaption>
           Campanile edited at i_start=[1, 3, 5, 7, 10, 20]. Notice gradual preservation of original structure.
         </figcaption>
@@ -232,7 +232,7 @@ For each denoising step:
 
       <h3 style="margin-top:1rem">Custom Image 1 Edits</h3>
       <figure>
-        <img src="media/proj5_1_7_ex2.png" alt="Building SDEdit">
+        <img src="media/proj5_1.7_ex2.png" alt="Building SDEdit">
         <figcaption>
           Building/stairs edited at i_start=[1, 3, 5, 7, 10, 20]
         </figcaption>
@@ -240,7 +240,7 @@ For each denoising step:
 
       <h3 style="margin-top:1rem">Custom Image 2 Edits</h3>
       <figure>
-        <img src="media/proj5_1_7_ex3.png" alt="Waterfall SDEdit">
+        <img src="media/proj5_1.7_ex3.png" alt="Waterfall SDEdit">
         <figcaption>
           Waterfall/mountain edited at i_start=[1, 3, 5, 7, 10, 20]
         </figcaption>
@@ -257,11 +257,11 @@ For each denoising step:
       <h3>Web Image Edits</h3>
       <div class="grid two">
         <figure>
-          <img src="media/proj5_1_7_1_web.png" alt="Web original">
+          <img src="media/proj5_1.7.1_web.png" alt="Web original">
           <figcaption>Original web image</figcaption>
         </figure>
         <figure>
-          <img src="media/proj5_1_7_1_web_output.png" alt="Web edited">
+          <img src="media/proj5_1.7.1_web_output.png" alt="Web edited">
           <figcaption>Edited at i_start=[1, 3, 5, 7, 10, 20]</figcaption>
         </figure>
       </div>
@@ -269,11 +269,11 @@ For each denoising step:
       <h3 style="margin-top:1rem">Hand-Drawn Image 1</h3>
       <div class="grid two">
         <figure>
-          <img src="media/proj5_1_7_1_hand1.png" alt="Hand1 original">
+          <img src="media/proj5_1.7.1_hand1.png" alt="Hand1 original">
           <figcaption>Original hand drawing</figcaption>
         </figure>
         <figure>
-          <img src="media/proj5_1_7_1_hand1_output.png" alt="Hand1 edited">
+          <img src="media/proj5_1.7.1_hand1_output.png" alt="Hand1 edited">
           <figcaption>Edited at i_start=[1, 3, 5, 7, 10, 20]</figcaption>
         </figure>
       </div>
@@ -281,11 +281,11 @@ For each denoising step:
       <h3 style="margin-top:1rem">Hand-Drawn Image 2</h3>
       <div class="grid two">
         <figure>
-          <img src="media/proj5_1_7_1_hand2.png" alt="Hand2 original">
+          <img src="media/proj5_1.7.1_hand2.png" alt="Hand2 original">
           <figcaption>Original hand drawing</figcaption>
         </figure>
         <figure>
-          <img src="media/proj5_1_7_1_hand2_output.png" alt="Hand2 edited">
+          <img src="media/proj5_1.7.1_hand2_output.png" alt="Hand2 edited">
           <figcaption>Edited at i_start=[1, 3, 5, 7, 10, 20]</figcaption>
         </figure>
       </div>
@@ -311,7 +311,7 @@ Where mask=1 means "inpaint this region"
 
       <h3>Campanile Inpainting</h3>
       <figure>
-        <img src="media/proj5_1_7_2_campanile.png" alt="Campanile inpaint">
+        <img src="media/proj5_1.7.2_campanile.png" alt="Campanile inpaint">
         <figcaption>
           Campanile: Original → Mask (white=inpaint region) → Inpainted result
         </figcaption>
@@ -319,7 +319,7 @@ Where mask=1 means "inpaint this region"
 
       <h3 style="margin-top:1rem">Custom Inpainting 1</h3>
       <figure>
-        <img src="media/proj5_1_7_2_custom1.png" alt="Custom1 inpaint">
+        <img src="media/proj5_1.7.2_custom1.png" alt="Custom1 inpaint">
         <figcaption>
           Building inpainting: Original → Mask → Inpainted result (center region replaced)
         </figcaption>
@@ -327,7 +327,7 @@ Where mask=1 means "inpaint this region"
 
       <h3 style="margin-top:1rem">Custom Inpainting 2</h3>
       <figure>
-        <img src="media/proj5_1_7_2_custom2.png" alt="Custom2 inpaint">
+        <img src="media/proj5_1.7.2_custom2.png" alt="Custom2 inpaint">
         <figcaption>
           Waterfall/mountain inpainting: Original → Mask → Inpainted result (sky region replaced)
         </figcaption>
@@ -343,7 +343,7 @@ Where mask=1 means "inpaint this region"
 
       <h3>Campanile Text-Guided Edits</h3>
       <figure>
-        <img src="media/proj5_1_7_3_campanile.png" alt="Campanile text edit">
+        <img src="media/proj5_1.7.3_campanile.png" alt="Campanile text edit">
         <figcaption>
           Campanile edited with prompt "a lithograph of waterfalls" at i_start=[1, 3, 5, 7, 10, 20].
           Gradually transforms toward waterfall style while preserving tower structure.
@@ -352,7 +352,7 @@ Where mask=1 means "inpaint this region"
 
       <h3 style="margin-top:1rem">Custom Image 1 Text-Guided Edits</h3>
       <figure>
-        <img src="media/proj5_1_7_3_custom1.png" alt="Custom1 text edit">
+        <img src="media/proj5_1.7.3_custom1.png" alt="Custom1 text edit">
         <figcaption>
           Building edited with "a lithograph of waterfalls" prompt
         </figcaption>
@@ -360,7 +360,7 @@ Where mask=1 means "inpaint this region"
 
       <h3 style="margin-top:1rem">Custom Image 2 Text-Guided Edits</h3>
       <figure>
-        <img src="media/proj5_1_7_3_custom2.png" alt="Custom2 text edit">
+        <img src="media/proj5_1.7.3_custom2.png" alt="Custom2 text edit">
         <figcaption>
           Waterfall/mountain edited with "a lithograph of waterfalls" prompt
         </figcaption>
@@ -387,7 +387,7 @@ For each denoising step:
 
       <h3>Anagram 1: "Old Man" ↔ "Campfire"</h3>
       <figure>
-        <img src="media/proj5_1_8_ex1.png" alt="Anagram old man campfire">
+        <img src="media/proj5_1.8_ex1.png" alt="Anagram old man campfire">
         <figcaption>
           "an oil painting of an old man" (normal) → "an oil painting of people around a campfire" (flipped)
         </figcaption>
@@ -395,7 +395,7 @@ For each denoising step:
 
       <h3 style="margin-top:1rem">Anagram 2: "Waterfalls" ↔ "Skull"</h3>
       <figure>
-        <img src="media/proj5_1_8_ex2.png" alt="Anagram waterfalls skull">
+        <img src="media/proj5_1.8_ex2.png" alt="Anagram waterfalls skull">
         <figcaption>
           "a lithograph of waterfalls" (normal) → "a lithograph of a skull" (flipped)
         </figcaption>
@@ -403,7 +403,7 @@ For each denoising step:
 
       <h3 style="margin-top:1rem">Anagram 3: "Dog" ↔ "Rocket Ship"</h3>
       <figure>
-        <img src="media/proj5_1_8_ex3.png" alt="Anagram dog rocket">
+        <img src="media/proj5_1.8_ex3.png" alt="Anagram dog rocket">
         <figcaption>
           "a photo of a dog" (normal) → "a rocket ship" (flipped)
         </figcaption>
@@ -434,7 +434,7 @@ For each denoising step:
 
       <h3>Hybrid 1: Skull + Waterfalls</h3>
       <figure>
-        <img src="media/proj5_1_9_ex1.png" alt="Hybrid skull waterfalls">
+        <img src="media/proj5_1.9_ex1.png" alt="Hybrid skull waterfalls">
         <figcaption>
           Low freq: "skull" + High freq: "waterfalls". Close up shows waterfalls, far away shows skull.
         </figcaption>
@@ -442,7 +442,7 @@ For each denoising step:
 
       <h3 style="margin-top:1rem">Hybrid 2: Old Man + Campfire</h3>
       <figure>
-        <img src="media/proj5_1_9_ex2.png" alt="Hybrid old man campfire">
+        <img src="media/proj5_1.9_ex2.png" alt="Hybrid old man campfire">
         <figcaption>
           Low freq: "old man" + High freq: "people around campfire"
         </figcaption>
