@@ -463,360 +463,272 @@ For each denoising step:
     </section>
 
     <!-- ==================== PART B ==================== -->
-    <div class="major-part"><h2>Part B — Training Diffusion Models from Scratch</h2></div>
+    <div class="content">
 
-    <!-- ========= Part 1 ========= -->
-    <div class="part-header"><h2>Part 1 — Training a Single-Step Denoising UNet</h2></div>
+        <div class="major-part"><h2>Part B — Training Diffusion Models from Scratch</h2></div>
 
-    <section class="card" id="b-1-1">
-      <h2>1.1 — Implementing the UNet</h2>
-      <p>
-        Implementing a UNet architecture with encoder-decoder structure and skip connections.
-        The network consists of downsampling blocks, a bottleneck, and upsampling blocks with skip connections.
-      </p>
+        <div class="part-header"><h2>Part 1 — Training a Single-Step Denoising UNet</h2></div>
 
-      <h3>UNet Architecture</h3>
-      <pre>
+    <section class="card" id="b-1-1">
+      <h2>1.1 — Implementing the UNet</h2>
+      <p>
+        We implemented the UNet architecture with encoder-decoder structure and skip connections as shown in the project description (Figures 1 and 2).
+      </p>
+
+      <h3>UNet Architecture Summary</h3>
+      <pre>
 Encoder:
-  ConvBlock(1 → D)  @ 28×28
-  DownBlock(D → D)  @ 14×14  [skip1]
-  DownBlock(D → 2D) @ 7×7    [skip2]
+  ConvBlock(1 → D)  @ 28×28
+  DownBlock(D → D)  @ 14×14  [skip1]
+  DownBlock(D → 2D) @ 7×7    [skip2]
 
 Bottleneck:
-  Flatten  (7×7 → 1×1)
-  Unflatten (1×1 → 7×7)
+  Flatten  (7×7 → 1×1)
+  Unflatten (1×1 → 7×7)
 
 Decoder:
-  UpBlock(2D → D) @ 14×14  + skip2
-  UpBlock(D → D)  @ 28×28  + skip1
-  
+  UpBlock(2D → D) @ 14×14  + skip2
+  UpBlock(D → D)  @ 28×28  + skip1
+  
 Output:
-  ConvBlock(D → D) + Conv2d(D → 1)
+  ConvBlock(D → D) + Conv2d(D → 1)
+      </pre>
+    </section>
 
-Components:
-- Conv: Conv2d + BatchNorm + GELU
-- DownConv: Conv2d(stride=2) + BatchNorm + GELU
-- UpConv: ConvTranspose2d + BatchNorm + GELU
-- ConvBlock: Conv → Conv (two sequential)
-- DownBlock: DownConv → ConvBlock
-- UpBlock: UpConv → Concat(skip) → ConvBlock
-      </pre>
-    </section>
+    <section class="card" id="b-1-2-1">
+      <h2>1.2.1 — Training the Denoiser (σ=0.5)</h2>
+      <p>
+        We trained a UNet to denoise MNIST digits corrupted with Gaussian noise at a fixed standard deviation $\sigma=0.5$.
+        <strong>Hyperparameters:</strong> D=128, batch_size=256, lr=1e-4, epochs=5
+      </p>
 
-    <section class="card" id="b-1-2-1">
-      <h2>1.2.1 — Training the Denoiser (σ=0.5)</h2>
-      <p>
-        Training a UNet to denoise MNIST digits corrupted with Gaussian noise at σ=0.5.
-        <strong>Hyperparameters:</strong> D=128, batch_size=256, lr=1e-4, epochs=5
-      </p>
+      <h3>Noising Process Visualization (Deliverable)</h3>
+      <figure>
+        <img src="media/proj5b_1.2.png" alt="Noising process visualization">
+                 <figcaption>
+          MNIST digit (Label: 5) with varying noise levels: $\sigma = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]$.
+        </figcaption>
+      </figure>
 
-      <h3>Noising Process Visualization</h3>
-      <figure>
-        <img src="media/2_1_2_1_noising.png" alt="Noising process">
-        <figcaption>
-          MNIST digit with varying noise levels: σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]
-        </figcaption>
-      </figure>
+      <h3 style="margin-top:1rem">Training Loss Curve (Deliverable)</h3>
+      <figure>
+        <img src="media/proj5b_1.2.1_loss_graphs.jpg" alt="Training loss curve for sigma=0.5">
+                 <figcaption>
+          Overall and per-epoch training loss over 5 epochs ($\sigma=0.5$).
+        </figcaption>
+      </figure>
 
-      <h3 style="margin-top:1rem">Training Loss Curve</h3>
-      <figure>
-        <img src="media/2_1_2_1_loss_curve.png" alt="Training loss">
-        <figcaption>
-          Training loss over 5 epochs (σ=0.5)
-        </figcaption>
-      </figure>
+      <h3 style="margin-top:1rem">Denoising Results (Deliverable)</h3>
+      <figure>
+        <img src="media/proj5b_1.2.1_epochs.png" alt="Results after 5 epochs">
+                 <figcaption>Results on the test set after 5 epochs of training. The output is significantly clearer than the noisy input.</figcaption>
+      </figure>
+    </section>
 
-      <h3 style="margin-top:1rem">Denoising Results</h3>
-      <div class="grid two">
-        <figure>
-          <img src="media/2_1_2_1_epoch1.png" alt="Epoch 1 results">
-          <figcaption>Results after Epoch 1 (still blurry)</figcaption>
-        </figure>
-        <figure>
-          <img src="media/2_1_2_1_epoch5.png" alt="Epoch 5 results">
-          <figcaption>Results after Epoch 5 (much clearer)</figcaption>
-        </figure>
-      </div>
-    </section>
+    <section class="card" id="b-1-2-2">
+      <h2>1.2.2 — Out-of-Distribution Testing (Deliverable)</h2>
+      <p>
+        We tested the denoiser (trained only on $\sigma=0.5$) on inputs with different noise levels ($\sigma \in [0.0, 1.0]$) to evaluate its generalization.
+      </p>
 
-    <section class="card" id="b-1-2-2">
-      <h2>1.2.2 — Out-of-Distribution Testing</h2>
-      <p>
-        Testing the denoiser (trained on σ=0.5) on different noise levels to evaluate generalization.
-      </p>
+      <figure>
+        <img src="media/proj5b_1.2.2.png" alt="OOD testing results">
+                 <figcaption>
+          **Out-of-Distribution Testing:** Model trained on $\sigma=0.5$ performs best at that level. Performance degrades noticeably for noise levels far from $\sigma=0.5$.
+        </figcaption>
+      </figure>
 
-      <figure>
-        <img src="media/2_1_2_2_ood.png" alt="OOD testing">
-        <figcaption>
-          Top row: Clean image<br>
-          Middle row: Noisy images at σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]<br>
-          Bottom row: Denoised results (best at σ=0.5, degrades for other values)
-        </figcaption>
-      </figure>
+      <p style="margin-top:.6rem; color:var(--muted)">
+        <strong>Observation:</strong> The model struggles with images that are too clean ($\sigma \le 0.2$) or too noisy ($\sigma \ge 0.8$), confirming that the single-step denoiser has limited generalization outside its training noise distribution.
+      </p>
+    </section>
 
-      <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Observation:</strong> Performance is optimal at σ=0.5 (training noise level) and degrades 
-        for noise levels far from 0.5, demonstrating limited out-of-distribution generalization.
-      </p>
-    </section>
+    <section class="card" id="b-1-2-3">
+      <h2>1.2.3 — Denoising Pure Noise</h2>
+      <p>
+        We attempted to use the denoiser for a generative task by training it to map pure Gaussian noise $z \sim N(0,I)$ to a clean image $x_0$.
+      </p>
 
-    <section class="card" id="b-1-2-3">
-      <h2>1.2.3 — Denoising Pure Noise</h2>
-      <p>
-        Training to denoise pure random noise z ~ N(0,I) to clean MNIST digits.
-        With MSE loss, the model learns to output the centroid of the training distribution.
-      </p>
+      <h3>Training Loss (Deliverable)</h3>
+      <figure>
+        <img src="media/proj5b_1.2.3_loss_graphs.jpg" alt="Pure noise loss">
+                 <figcaption>Training loss curve for denoising pure noise over 5 epochs.</figcaption>
+      </figure>
 
-      <h3>Training Loss</h3>
-      <figure>
-        <img src="media/2_1_2_3_loss.png" alt="Pure noise loss">
-        <figcaption>Training loss for pure noise denoising</figcaption>
-      </figure>
+      <h3 style="margin-top:1rem">Results (Deliverable)</h3>
+      <figure>
+        <img src="media/proj5b_1.2.3_epochs.png" alt="Pure noise denoising results">
+                 <figcaption>Generated samples from pure noise inputs after Epoch 1 (top) and Epoch 5 (bottom). </figcaption>
+      </figure>
 
-      <h3 style="margin-top:1rem">Results</h3>
-      <div class="grid two">
-        <figure>
-          <img src="media/2_1_2_3_epoch1.png" alt="Epoch 1">
-          <figcaption>Epoch 1: Noisy outputs</figcaption>
-        </figure>
-        <figure>
-          <img src="media/2_1_2_3_epoch5.png" alt="Epoch 5">
-          <figcaption>Epoch 5: Converged to "average digit"</figcaption>
-        </figure>
-      </div>
-
-      <h3 style="margin-top:1rem">Analysis</h3>
-      <pre>
+      <h3 style="margin-top:1rem">Analysis (Deliverable)</h3>
+      <pre>
 OBSERVED PATTERNS:
-The model outputs a blurry "average digit" that doesn't clearly 
-represent any specific digit (0-9). All generated samples look 
-very similar regardless of the input noise.
+The generated outputs are all extremely similar, forming a blurry shape that resembles the average of all MNIST digits. No specific digit (0-9) is clearly represented, regardless of the input noise.
 
 EXPLANATION:
-Since the input is pure random noise with no information about 
-which digit to generate, and we're using MSE loss, the optimal 
-solution is to output E[x] = the mean of all training images.
+With an MSE loss $L = E[||D(z) - x||^2]$ and pure noise input $z$ containing no distinguishing information about the target digit $x$, the optimal prediction for the denoiser $D(z)$ is the mean of the target distribution. This is because the MSE loss minimizes the sum of squared distances to all training points, which is mathematically equivalent to finding the centroid, $E[x]$. The model converges to this "average digit" as it is the safest prediction that minimizes the expected error across the entire dataset. This confirms that one-step denoising is insufficient for controlled generation.
+      </pre>
+    </section>
 
-MSE loss minimizes: L = E[||D(z) - x||²]
-Optimal prediction: D(z) = E[x] = average of all MNIST digits
+        <div class="part-header"><h2>Part 2 — Training a Flow Matching Model</h2></div>
 
-This is analogous to finding the centroid in clustering - the 
-point that minimizes sum of squared distances to all data points.
-The model learns this "average digit" as it's the best it can do 
-when given no information about the target class.
-      </pre>
-    </section>
+    <section class="card" id="b-2-1">
+      <h2>2.1 — Adding Time Conditioning to UNet</h2>
+      <p>
+        We modified the UNet to accept a scalar timestep $t \in [0,1]$ via **FCBlocks**. The embedding is used to modulate features after the bottleneck and the first upsampling block.
+      </p>
 
-    <!-- ========= Part 2 ========= -->
-    <div class="part-header"><h2>Part 2 — Training a Flow Matching Model</h2></div>
-
-    <section class="card" id="b-2-1">
-      <h2>2.1 — Adding Time Conditioning to UNet</h2>
-      <p>
-        Injecting scalar timestep t ∈ [0,1] into the UNet using FCBlocks (fully-connected blocks).
-        The time embedding modulates features after the bottleneck and first upsampling.
-      </p>
-
-      <h3>Time Conditioning Architecture</h3>
-      <pre>
+      <h3>Time Conditioning Pseudo-Code</h3>
+      <pre>
 FCBlock: Linear(F_in, F_out) → GELU → Linear(F_out, F_out)
 
 Time Embedding:
-  fc1_t = FCBlock(1, 2D)  # t is scalar → 2D features
-  fc2_t = FCBlock(1, D)   # t is scalar → D features
-  
-  t1 = fc1_t(t)
-  t2 = fc2_t(t)
+  fc1_t = FCBlock(1, 2D) 
+  fc2_t = FCBlock(1, D)  
+  
+  t1 = fc1_t(t_normalized)
+  t2 = fc2_t(t_normalized)
 
 Modulation (element-wise multiplication):
-  unflatten = unflatten * t1
-  up1 = up1 * t2
+  unflatten = unflatten * t1
+  up1 = up1 * t2
+      </pre>
+    </section>
 
-Note: t must be normalized to [0, 1] before embedding
-      </pre>
-    </section>
+    <section class="card" id="b-2-2">
+      <h2>2.2 — Training the Time-Conditioned UNet</h2>
+      <p>
+        We trained the time-conditioned UNet using the **Flow Matching Objective**. The UNet is trained to predict the flow $v = x_0 - x_1$ given the interpolated sample $x_t$ and timestep $t$.
+        <strong>Hyperparameters:</strong> D=64, batch_size=64, lr=1e-2, ExponentialLR decay ($\gamma=0.9999$)
+      </p>
 
-    <section class="card" id="b-2-2">
-      <h2>2.2 — Training the Time-Conditioned UNet</h2>
-      <p>
-        Training using flow matching objective. For each batch: sample random t ~ Uniform(0,1),
-        interpolate x_t = (1-t)·x_1 + t·x_0, predict flow v = x_0 - x_1.
-        <strong>Hyperparameters:</strong> D=64, batch_size=64, lr=1e-2, ExponentialLR decay
-      </p>
+      <h3>Training Loss Curve (Deliverable)</h3>
+      <figure>
+        <img src="media/proj5b_2.2.png" alt="Time-conditional loss">
+                 <figcaption>Training loss for time-conditioned UNet (5 epochs) using the flow matching objective.</figcaption>
+      </figure>
+    </section>
 
-      <h3>Flow Matching Algorithm</h3>
-      <pre>
-For each training step:
-  1. Sample clean image x_1 from MNIST
-  2. Sample noise x_0 ~ N(0, I)
-  3. Sample timestep t ~ Uniform(0, 1)
-  4. Interpolate: x_t = (1-t)·x_1 + t·x_0
-  5. Target flow: v = x_0 - x_1
-  6. Predicted flow: v_pred = UNet(x_t, t)
-  7. Loss: MSE(v_pred, v)
-      </pre>
+    <section class="card" id="b-2-3">
+      <h2>2.3 — Sampling from Time-Conditioned UNet (Deliverable)</h2>
+      <p>
+        We used the Euler method to iteratively denoise pure noise ($t=1$) to a clean image ($t=0$).
+      </p>
 
-      <figure>
-        <img src="media/2_2_loss.png" alt="Time-conditional loss">
-        <figcaption>Training loss for time-conditioned UNet (5 epochs)</figcaption>
-      </figure>
-    </section>
+      <h3>Generated Samples (Deliverable)</h3>
+      <div class="grid three">
+        <figure>
+          <img src="media/proj5b_2.3_epoch1.png" alt="Epoch 1 samples">
+                   <figcaption>Epoch 1: Still noisy and unformed.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/proj5b_2.3_epoch2.png" alt="Epoch 5 samples">
+                   <figcaption>Epoch 5: Recognizable digits begin to emerge.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/proj5b_2.3_epoch3.png" alt="Epoch 10 samples">
+                   <figcaption>Epoch 10: Clear, legible digits are generated, demonstrating effective generative capacity.</figcaption>
+        </figure>
+      </div>
+    </section>
 
-    <section class="card" id="b-2-3">
-      <h2>2.3 — Sampling from Time-Conditioned UNet</h2>
-      <p>
-        Using Euler method to iteratively denoise from pure noise (t=1) to clean image (t=0).
-      </p>
+    <section class="card" id="b-2-4">
+      <h2>2.4 — Adding Class-Conditioning to UNet</h2>
+      <p>
+        We further conditioned the UNet on the digit class (0-9) using a one-hot vector $\mathbf{c}$. To enable Classifier-Free Guidance (CFG), we applied $10\%$ dropout to $\mathbf{c}$, setting it to $\mathbf{0}$ for unconditional generation.
+      </p>
 
-      <h3>Sampling Algorithm</h3>
-      <pre>
-Initialize: x = random noise ~ N(0, I)
-Timesteps: t = [1.0, 0.99, 0.98, ..., 0.01, 0.0]
+      <h3>Class Conditioning Pseudo-Code</h3>
+      <pre>
+c = one_hot(class_label)
+if random() < 0.1: c = zeros(10) # 10% dropout
 
-For each step:
-  dt = t[i] - t[i+1]
-  v = UNet(x, t[i])
-  x = x - dt * v
-
-Return: x (generated digit)
-      </pre>
-
-      <div class="grid three">
-        <figure>
-          <img src="media/2_3_epoch1.png" alt="Epoch 1 samples">
-          <figcaption>Epoch 1: Mostly noise</figcaption>
-        </figure>
-        <figure>
-          <img src="media/2_3_epoch5.png" alt="Epoch 5 samples">
-          <figcaption>Epoch 5: Recognizable digits</figcaption>
-        </figure>
-        <figure>
-          <img src="media/2_3_epoch10.png" alt="Epoch 10 samples">
-          <figcaption>Epoch 10: Clear digits</figcaption>
-        </figure>
-      </div>
-    </section>
-
-    <section class="card" id="b-2-4">
-      <h2>2.4 — Adding Class-Conditioning to UNet</h2>
-      <p>
-        Conditioning on digit class (0-9) using one-hot vectors with 10% dropout for classifier-free guidance.
-      </p>
-
-      <h3>Class Conditioning Architecture</h3>
-      <pre>
-FCBlock for class:
-  fc1_c = FCBlock(10, 2D)  # one-hot(10) → 2D features
-  fc2_c = FCBlock(10, D)   # one-hot(10) → D features
-
-Dropout (p_uncond = 0.1):
-  With 10% probability: set c = zeros(10)
-  Otherwise: use one_hot(class_label, num_classes=10)
+c1 = fc1_c(c)
+c2 = fc2_c(c)
 
 Combined modulation:
-  unflatten = c1 * unflatten + t1
-  up1 = c2 * up1 + t2
+  unflatten = c1 * unflatten + t1
+  up1 = c2 * up1 + t2
+      </pre>
+    </section>
 
-where c1, c2 are class embeddings and t1, t2 are time embeddings
-      </pre>
-    </section>
+    <section class="card" id="b-2-5">
+      <h2>2.5 — Training Class-Conditioned UNet (Deliverable)</h2>
+      <p>
+        Training continued with both time ($\mathbf{t}$) and class ($\mathbf{c}$) conditioning.
+      </p>
 
-    <section class="card" id="b-2-5">
-      <h2>2.5 — Training Class-Conditioned UNet</h2>
-      <p>
-        Training with both time and class conditioning. Same as 2.2 but with class labels and dropout.
-      </p>
+      <figure>
+        <img src="media/proj5b_2.5.png" alt="Class-conditional loss">
+                 <figcaption>Training loss curve for class-conditioned UNet (10 epochs).</figcaption>
+      </figure>
+    </section>
 
-      <figure>
-        <img src="media/2_5_loss.png" alt="Class-conditional loss">
-        <figcaption>Training loss for class-conditioned UNet (10 epochs, no scheduler)</figcaption>
-      </figure>
-    </section>
+    <section class="card" id="b-2-6">
+      <h2>2.6 — Sampling with Classifier-Free Guidance (CFG)</h2>
+      <p>
+        We used Classifier-Free Guidance (CFG) with a scale of $\gamma=5.0$ to enhance sample quality and adherence to the conditioned class label.
+      </p>
 
-    <section class="card" id="b-2-6">
-      <h2>2.6 — Sampling with Classifier-Free Guidance</h2>
-      <p>
-        Sampling with CFG scale γ=5.0. For each step, predict both conditional and unconditional flow,
-        then extrapolate: v = v_uncond + γ(v_cond - v_uncond)
-      </p>
+      <h3>CFG Sampling Algorithm</h3>
+      <pre>
+v_{\text{cond}} = UNet(x, t, class\_label)
+v_{\text{uncond}} = UNet(x, t, zeros(10))
+v_{\text{cfg}} = v_{\text{uncond}} + \gamma(v_{\text{cond}} - v_{\text{uncond}})
+x = x - dt \cdot v_{\text{cfg}}
+      </pre>
 
-      <h3>CFG Sampling Algorithm</h3>
-      <pre>
-For each denoising step:
-  v_cond = UNet(x, t, class_label)      # with class
-  v_uncond = UNet(x, t, zeros(10))      # without class
-  v_cfg = v_uncond + γ(v_cond - v_uncond)  # γ=5.0
-  x = x - dt * v_cfg
-      </pre>
+      <h3>Sampling Results (Deliverable)</h3>
+      <div class="grid three">
+        <figure>
+          <img src="media/proj5b_2.6_epoch1.png" alt="Epoch 1 class samples">
+                   <figcaption>Epoch 1: Poorly formed, but class separation is visible.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/proj5b_2.6_epoch2.png" alt="Epoch 5 class samples">
+                   <figcaption>Epoch 5: Rapid quality improvement, digits are clear.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/proj5b_2.6_epoch3.png" alt="Epoch 10 class samples">
+                   <figcaption>Epoch 10: High quality, 4 instances generated per digit (0-9).</figcaption>
+        </figure>
+      </div>
 
-      <div class="grid three">
-        <figure>
-          <img src="media/2_6_epoch1.png" alt="Epoch 1 class samples">
-          <figcaption>Epoch 1: Noisy</figcaption>
-        </figure>
-        <figure>
-          <img src="media/2_6_epoch5.png" alt="Epoch 5 class samples">
-          <figcaption>Epoch 5: Improving</figcaption>
-        </figure>
-        <figure>
-          <img src="media/2_6_epoch10.png" alt="Epoch 10 class samples">
-          <figcaption>Epoch 10: High quality, 4 instances per digit 0-9</figcaption>
-        </figure>
-      </div>
+      <div class="hr"></div>
 
-      <div class="hr"></div>
+      <h3>Training Without Learning Rate Scheduler (Deliverable)</h3>
+      <p>
+        We attempted to remove the ExponentialLR scheduler. We found that the model could maintain performance using a constant learning rate of $1e-2$ throughout all 10 epochs.
+      </p>
 
-      <h3>Training Without Learning Rate Scheduler</h3>
-      <p>
-        Removing the ExponentialLR scheduler while maintaining performance by using a constant 
-        learning rate of 1e-2 throughout all 10 epochs.
-      </p>
+      <figure>
+        <img src="media/proj5b_2.6_loss.png" alt="No scheduler loss curve">
+                 <figcaption>
+          Training Loss - Class-Conditioned UNet (No Scheduler). The model converges successfully.
+        </figcaption>
+      </figure>
 
-      <figure>
-        <img src="media/2_6_no_scheduler.png" alt="No scheduler samples">
-        <figcaption>
-          Generated samples after 10 epochs WITHOUT scheduler (constant lr=1e-2, γ=5.0)
-        </figcaption>
-      </figure>
+      <h3 style="margin-top:1rem">Compensation Strategy (Deliverable)</h3>
+      <pre>
+Compensation Strategy:
+- Maintained a constant, slightly high learning rate (lr=1e-2).
+- Relied on the robustness of the Adam optimizer's adaptive learning rates.
+- The Class-Free Guidance (CFG) at sampling time (γ=5.0) heavily compensates for any small loss in training precision, forcing the samples to be sharp and adhere strongly to the class condition.
 
-      <h3 style="margin-top:1rem">Compensation Strategy</h3>
-      <pre>
-WITHOUT Scheduler:
-- Used constant lr=1e-2 throughout all 10 epochs
-- Simpler training loop (no scheduler.step())
-- Similar final performance to scheduler version
+Result: Constant LR achieves comparable final sample quality and simplifies the training process by removing a hyperparameter (scheduler gamma) and a training step (scheduler.step()).
+      </pre>
+    </section>
 
-WHY IT WORKS:
-1. Flow matching is robust to learning rate schedules
-2. Adam's adaptive learning rates provide stability
-3. Sufficient epochs (10) allow convergence even with constant LR
-4. CFG at sampling (γ=5.0) compensates for any training deficiencies
-
-TRADE-OFFS:
-- Simpler code and fewer hyperparameters
-- May have slightly more oscillation in later epochs
-- Comparable final sample quality to scheduler version
-
-RESULT: The exponential LR scheduler is helpful but not critical.
-Constant learning rate with proper hyperparameters achieves 
-comparable results, demonstrating the robustness of flow matching.
-      </pre>
-    </section>
-
-    <footer>
-      <div class="hr"></div>
-      <p>
-        <strong>Most Interesting Thing Learned:</strong> The power of diffusion models extends beyond 
-        simple generation. Part A showed how manipulating noise estimates enables optical illusions 
-        (visual anagrams) and hybrid images. Part B demonstrated that flow matching provides an elegant 
-        alternative to traditional DDPM, using direct flow prediction rather than noise estimation. 
-        The combination of classifier-free guidance with proper conditioning allows control over 
-        generation while maintaining high quality—all from models we can train from scratch!
-      </p>
-      <div class="hr" style="margin-top:1rem"></div>
-      <p>© <span id="year"></span> Raymond Wang • <a href="https://raymond23101.github.io">raymond23101.github.io</a></p>
-    </footer>
-  </div>
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+    <footer>
+      <div class="hr"></div>
+      <p>
+        <strong>Most Interesting Thing Learned:</strong> Flow matching provides an elegant and effective alternative to traditional DDPM, achieving high-quality, controlled generation with relative simplicity. The use of Classifier-Free Guidance, trained with $10\%$ unconditional dropout, proved critical for producing high-fidelity, class-specific samples with strong adherence to the conditioning.
+      </p>
+      <div class="hr" style="margin-top:1rem"></div>
+      <p>© <span id="year"></span> Raymond Wang • <a href="https://raymond23101.github.io">raymond23101.github.io</a></p>
+    </footer>
+  </div>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
