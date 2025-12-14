@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project 5 — Diffusion Models (CS180)</title>
-  <meta name="description" content="Part 1: DeepFloyd diffusion for image generation. Part 2: Training diffusion models from scratch on MNIST." />
+  <title>Project 5A — Diffusion Models (CS180)</title>
+  <meta name="description" content="Part A: Using pretrained DeepFloyd diffusion models for image generation and manipulation." />
   <style>
     :root{
       --bg:#f5f9ff; --ink:#0e1b2c; --muted:#5a6b82;
@@ -26,7 +26,16 @@
     .grid{display:grid; gap:14px}
     .two{grid-template-columns:1fr}
     .three{grid-template-columns:1fr}
-    @media(min-width:780px){ .two{grid-template-columns:1fr 1fr} .three{grid-template-columns:1fr 1fr 1fr} }
+    .four{grid-template-columns:1fr}
+    .five{grid-template-columns:1fr}
+    .six{grid-template-columns:1fr}
+    @media(min-width:780px){ 
+      .two{grid-template-columns:1fr 1fr} 
+      .three{grid-template-columns:1fr 1fr 1fr}
+      .four{grid-template-columns:repeat(4, 1fr)}
+      .five{grid-template-columns:repeat(5, 1fr)}
+      .six{grid-template-columns:repeat(6, 1fr)}
+    }
 
     figure{margin:0}
     img{width:100%; height:auto; display:block; border-radius:14px; border:1px solid var(--border)}
@@ -46,417 +55,521 @@
   <div class="wrap">
     <header>
       <a href="/">← Back to Home</a>
-      <h1>Programming Project #5 — Diffusion Models</h1>
+      <h1>Programming Project #5A — The Power of Diffusion Models</h1>
       <span class="pill">CS180/280A</span>
       <p style="margin:.4rem 0 0; color:var(--muted)">
-        <strong>Part 1:</strong> Using pretrained DeepFloyd diffusion models for image generation and manipulation.
-        <strong>Part 2:</strong> Training diffusion models from scratch on MNIST digits.
-        All images below are shown directly on the page; assets are under <code>5/media/</code>.
+        Using pretrained DeepFloyd diffusion models for image generation, manipulation, and optical illusions.
+        All images are shown directly on the page; assets are under <code>5/media/</code>.
       </p>
     </header>
 
-    <div class="part-header"><h2>Part 1 — The Power of Diffusion Models</h2></div>
+    <!-- ========= Part 0 ========= -->
+    <div class="part-header"><h2>Part 0 — Setup & Text Prompts</h2></div>
 
-    <!-- ========= 1.1 ========= -->
-    <section class="card" id="1-1">
-      <h2>1.1 — Sampling from DeepFloyd</h2>
+    <section class="card" id="part0">
+      <h2>0.1 — Generated Images from Text Prompts</h2>
       <p>
-        We use the pretrained DeepFloyd IF diffusion model to generate images from text prompts. The model has two stages:
-        Stage 1 generates 64×64 images, and Stage 2 upsamples to 256×256. We use 20 inference steps for both stages.
+        Using DeepFloyd IF to generate images from custom text prompts. The model uses T5 text embeddings
+        and produces 64×64 images (Stage 1), which can be upsampled to 256×256 (Stage 2).
       </p>
 
-      <h3>Generated Images</h3>
+      <h3>Generated Samples</h3>
       <div class="grid three">
-        <figure><img src="media/1_1_watercolor_duck.png" alt="Watercolor duck">
-          <figcaption>"watercolor painting of a duck"</figcaption>
+        <figure><img src="media/0_1_prompt1.png" alt="Prompt 1">
+          <figcaption>"[your prompt 1]"</figcaption>
         </figure>
-        <figure><img src="media/1_1_sunset_waterfall.png" alt="Sunset waterfall">
-          <figcaption>"sunset waterfall"</figcaption>
+        <figure><img src="media/0_1_prompt2.png" alt="Prompt 2">
+          <figcaption>"[your prompt 2]"</figcaption>
         </figure>
-        <figure><img src="media/1_1_mountain_ducks.png" alt="Mountain of ducks">
-          <figcaption>"mountain of ducks"</figcaption>
+        <figure><img src="media/0_1_prompt3.png" alt="Prompt 3">
+          <figcaption>"[your prompt 3]"</figcaption>
         </figure>
       </div>
 
-      <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Process:</strong> Text → T5 embeddings → Stage 1 UNet (64×64) → Stage 2 UNet (256×256)
+      <p style="margin-top:.8rem; color:var(--muted)">
+        <strong>Random seed used:</strong> [your seed]<br>
+        <strong>num_inference_steps tested:</strong> [e.g., 20, 50]
       </p>
+    </section>
+
+    <!-- ========= Part 1 ========= -->
+    <div class="part-header"><h2>Part 1 — Sampling Loops</h2></div>
+
+    <!-- ========= 1.1 ========= -->
+    <section class="card" id="1-1">
+      <h2>1.1 — Implementing the Forward Process</h2>
+      <p>
+        The forward process adds Gaussian noise to clean images according to:
+        <code>x_t = √(ᾱ_t)·x_0 + √(1-ᾱ_t)·ε</code> where <code>ε ~ N(0, I)</code>.
+      </p>
+
+      <h3>Forward Process Equation</h3>
+      <pre>
+x_t = √(ᾱ_t) · x_0 + √(1-ᾱ_t) · ε
+
+where:
+  x_0 = clean image
+  x_t = noisy image at timestep t
+  ᾱ_t = noise schedule coefficient
+  ε ~ N(0, I) = Gaussian noise
+      </pre>
+
+      <h3>Campanile at Different Noise Levels</h3>
+      <div class="grid four">
+        <figure><img src="media/1_1_original.png" alt="Original">
+          <figcaption>Original (t=0)</figcaption>
+        </figure>
+        <figure><img src="media/1_1_t250.png" alt="t=250">
+          <figcaption>t=250</figcaption>
+        </figure>
+        <figure><img src="media/1_1_t500.png" alt="t=500">
+          <figcaption>t=500</figcaption>
+        </figure>
+        <figure><img src="media/1_1_t750.png" alt="t=750">
+          <figcaption>t=750</figcaption>
+        </figure>
+      </div>
     </section>
 
     <!-- ========= 1.2 ========= -->
     <section class="card" id="1-2">
-      <h2>1.2 — Forward Process (Adding Noise)</h2>
+      <h2>1.2 — Classical Denoising with Gaussian Blur</h2>
       <p>
-        The forward diffusion process gradually adds Gaussian noise to images according to:
-        <code>z = x + σε</code> where <code>ε ~ N(0, I)</code>.
-        Below we visualize the Campanile test image at different noise levels σ.
+        Attempting to denoise using classical Gaussian blur filtering. Results demonstrate the
+        limitations of traditional methods compared to learned diffusion models.
       </p>
 
-      <h3>Noising Process (σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0])</h3>
-      <figure><img src="media/1_2_noising_process.png" alt="Noising process">
-        <figcaption>Campanile digit at increasing noise levels (left to right)</figcaption>
-      </figure>
+      <div class="grid three">
+        <figure><img src="media/1_2_noisy_t250.png" alt="Noisy 250">
+          <figcaption>Noisy (t=250)</figcaption>
+        </figure>
+        <figure><img src="media/1_2_noisy_t500.png" alt="Noisy 500">
+          <figcaption>Noisy (t=500)</figcaption>
+        </figure>
+        <figure><img src="media/1_2_noisy_t750.png" alt="Noisy 750">
+          <figcaption>Noisy (t=750)</figcaption>
+        </figure>
+      </div>
+      <div class="grid three" style="margin-top:.8rem">
+        <figure><img src="media/1_2_gaussian_t250.png" alt="Gaussian 250">
+          <figcaption>Gaussian Blur (t=250)</figcaption>
+        </figure>
+        <figure><img src="media/1_2_gaussian_t500.png" alt="Gaussian 500">
+          <figcaption>Gaussian Blur (t=500)</figcaption>
+        </figure>
+        <figure><img src="media/1_2_gaussian_t750.png" alt="Gaussian 750">
+          <figcaption>Gaussian Blur (t=750)</figcaption>
+        </figure>
+      </div>
     </section>
 
     <!-- ========= 1.3 ========= -->
     <section class="card" id="1-3">
       <h2>1.3 — One-Step Denoising</h2>
       <p>
-        Using the pretrained UNet, we can denoise an image in a single step by estimating the noise
-        and removing it. Given <code>x_t = √α̅_t · x + √(1-α̅_t) · ε</code>, we can recover:
-        <code>x_0 = (x_t - √(1-α̅_t) · ε_est) / √α̅_t</code>
+        Using the pretrained UNet to estimate and remove noise in a single step:
+        <code>x_0 = (x_t - √(1-ᾱ_t)·ε_θ(x_t, t)) / √(ᾱ_t)</code>
       </p>
 
-      <h3>Results at Different Noise Levels</h3>
-      <figure><img src="media/1_3_one_step_denoising.png" alt="One-step denoising">
-        <figcaption>Top: Original, Middle: Noisy (t=250, 500, 750), Bottom: One-step denoised</figcaption>
-      </figure>
-
-      <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Observation:</strong> One-step denoising works well for moderate noise but struggles with high noise levels (t=750).
-      </p>
+      <div class="grid three">
+        <figure><img src="media/1_3_original.png" alt="Original">
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure><img src="media/1_3_noisy_t250.png" alt="Noisy 250">
+          <figcaption>Noisy (t=250)</figcaption>
+        </figure>
+        <figure><img src="media/1_3_denoised_t250.png" alt="Denoised 250">
+          <figcaption>One-Step Denoised</figcaption>
+        </figure>
+      </div>
+      <div class="grid three" style="margin-top:.8rem">
+        <figure><img src="media/1_3_original.png" alt="Original">
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure><img src="media/1_3_noisy_t500.png" alt="Noisy 500">
+          <figcaption>Noisy (t=500)</figcaption>
+        </figure>
+        <figure><img src="media/1_3_denoised_t500.png" alt="Denoised 500">
+          <figcaption>One-Step Denoised</figcaption>
+        </figure>
+      </div>
+      <div class="grid three" style="margin-top:.8rem">
+        <figure><img src="media/1_3_original.png" alt="Original">
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure><img src="media/1_3_noisy_t750.png" alt="Noisy 750">
+          <figcaption>Noisy (t=750)</figcaption>
+        </figure>
+        <figure><img src="media/1_3_denoised_t750.png" alt="Denoised 750">
+          <figcaption>One-Step Denoised</figcaption>
+        </figure>
+      </div>
     </section>
 
     <!-- ========= 1.4 ========= -->
     <section class="card" id="1-4">
       <h2>1.4 — Iterative Denoising</h2>
       <p>
-        Instead of denoising in one step, we can iteratively denoise over multiple timesteps using strided sampling.
-        Starting from t=990, we step by 30 to reach t=0. This produces much better results than one-step denoising.
+        Implementing the full DDPM iterative denoising process with strided timesteps (990, 960, ..., 30, 0).
+        Starting from i_start=10, we progressively remove noise over multiple steps.
       </p>
 
-      <h3>Algorithm: DDPM Sampling</h3>
-      <pre>
-strided_timesteps = [990, 960, 930, ..., 30, 0]
+      <h3>Denoising Progression (Every 5th Step)</h3>
+      <div class="grid six">
+        <figure><img src="media/1_4_step0.png" alt="Step 0">
+          <figcaption>Initial (t=990)</figcaption>
+        </figure>
+        <figure><img src="media/1_4_step5.png" alt="Step 5">
+          <figcaption>Step 5</figcaption>
+        </figure>
+        <figure><img src="media/1_4_step10.png" alt="Step 10">
+          <figcaption>Step 10</figcaption>
+        </figure>
+        <figure><img src="media/1_4_step15.png" alt="Step 15">
+          <figcaption>Step 15</figcaption>
+        </figure>
+        <figure><img src="media/1_4_step20.png" alt="Step 20">
+          <figcaption>Step 20</figcaption>
+        </figure>
+        <figure><img src="media/1_4_step25.png" alt="Step 25">
+          <figcaption>Step 25</figcaption>
+        </figure>
+      </div>
 
-for each step i:
-  t = strided_timesteps[i]
-  t' = strided_timesteps[i+1]
-  
-  # Estimate clean image
-  x_0 = (x_t - √(1-α̅_t) · ε_θ(x_t, t)) / √α̅_t
-  
-  # Step to next (less noisy) timestep
-  x_t' = √α̅_t' · β_t/(1-α̅_t) · x_0 
-       + √α_t · (1-α̅_t')/(1-α̅_t) · x_t
-       + √σ_t · v
-      </pre>
-
-      <figure><img src="media/1_4_iterative_denoising.png" alt="Iterative denoising">
-        <figcaption>Comparison: Original → Noisy → Iterative → One-step → Gaussian blur</figcaption>
-      </figure>
+      <h3 style="margin-top:1rem">Method Comparison</h3>
+      <div class="grid four">
+        <figure><img src="media/1_4_original.png" alt="Original">
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure><img src="media/1_4_iterative.png" alt="Iterative">
+          <figcaption>Iterative Denoising</figcaption>
+        </figure>
+        <figure><img src="media/1_4_onestep.png" alt="One-step">
+          <figcaption>One-Step Denoising</figcaption>
+        </figure>
+        <figure><img src="media/1_4_gaussian.png" alt="Gaussian">
+          <figcaption>Gaussian Blur</figcaption>
+        </figure>
+      </div>
     </section>
 
     <!-- ========= 1.5 ========= -->
     <section class="card" id="1-5">
       <h2>1.5 — Diffusion Model Sampling</h2>
       <p>
-        We can now generate images from pure noise by running iterative denoising from t=1000 to t=0.
-        Below are 5 samples generated with the prompt "a high quality photo".
+        Generating images from pure noise by running iterative denoising from t=990 to t=0.
+        Using prompt: "a high quality photo"
       </p>
 
-      <figure><img src="media/1_5_sampling.png" alt="Generated samples">
-        <figcaption>5 samples generated from pure noise (without CFG)</figcaption>
-      </figure>
-
-      <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Note:</strong> Without classifier-free guidance, results are decent but not optimal.
-      </p>
+      <div class="grid five">
+        <figure><img src="media/1_5_sample1.png" alt="Sample 1">
+          <figcaption>Sample 1</figcaption>
+        </figure>
+        <figure><img src="media/1_5_sample2.png" alt="Sample 2">
+          <figcaption>Sample 2</figcaption>
+        </figure>
+        <figure><img src="media/1_5_sample3.png" alt="Sample 3">
+          <figcaption>Sample 3</figcaption>
+        </figure>
+        <figure><img src="media/1_5_sample4.png" alt="Sample 4">
+          <figcaption>Sample 4</figcaption>
+        </figure>
+        <figure><img src="media/1_5_sample5.png" alt="Sample 5">
+          <figcaption>Sample 5</figcaption>
+        </figure>
+      </div>
     </section>
 
     <!-- ========= 1.6 ========= -->
     <section class="card" id="1-6">
       <h2>1.6 — Classifier-Free Guidance (CFG)</h2>
       <p>
-        CFG improves sample quality by computing both conditional and unconditional noise estimates,
-        then extrapolating: <code>ε = ε_u + γ(ε_c - ε_u)</code> where γ is the guidance scale.
-        With γ=7, we get much higher quality images.
+        Improving sample quality using CFG with guidance scale γ=7.
+        Formula: <code>ε = ε_u + γ(ε_c - ε_u)</code>
       </p>
 
-      <figure><img src="media/1_6_cfg_sampling.png" alt="CFG samples">
-        <figcaption>5 samples with CFG (γ=7) - significantly improved quality</figcaption>
-      </figure>
+      <h3>CFG Algorithm</h3>
+      <pre>
+ε_c = conditional noise estimate (with prompt)
+ε_u = unconditional noise estimate (empty prompt)
+ε = ε_u + γ(ε_c - ε_u)
+
+γ = 7 (guidance scale)
+      </pre>
+
+      <div class="grid five">
+        <figure><img src="media/1_6_cfg_sample1.png" alt="CFG Sample 1">
+          <figcaption>Sample 1 (CFG)</figcaption>
+        </figure>
+        <figure><img src="media/1_6_cfg_sample2.png" alt="CFG Sample 2">
+          <figcaption>Sample 2 (CFG)</figcaption>
+        </figure>
+        <figure><img src="media/1_6_cfg_sample3.png" alt="CFG Sample 3">
+          <figcaption>Sample 3 (CFG)</figcaption>
+        </figure>
+        <figure><img src="media/1_6_cfg_sample4.png" alt="CFG Sample 4">
+          <figcaption>Sample 4 (CFG)</figcaption>
+        </figure>
+        <figure><img src="media/1_6_cfg_sample5.png" alt="CFG Sample 5">
+          <figcaption>Sample 5 (CFG)</figcaption>
+        </figure>
+      </div>
+
+      <p style="margin-top:.6rem; color:var(--muted)">
+        <strong>Observation:</strong> CFG dramatically improves image quality compared to Part 1.5.
+      </p>
     </section>
 
     <!-- ========= 1.7 ========= -->
     <section class="card" id="1-7">
       <h2>1.7 — Image-to-Image Translation (SDEdit)</h2>
       <p>
-        By adding partial noise to a real image and then denoising, we can edit it while preserving structure.
-        Higher noise levels (lower i_start) allow more creative changes; lower noise levels preserve more details.
+        Adding noise to real images and denoising to create edits. Lower i_start values allow
+        more creative changes; higher values preserve more of the original.
       </p>
 
-      <h3>Campanile Editing</h3>
-      <figure><img src="media/1_7_campanile_edit.png" alt="Campanile SDEdit">
-        <figcaption>i_start = [1, 3, 5, 7, 10, 20] - more noise (left) to less noise (right)</figcaption>
-      </figure>
+      <h3>Campanile Edits</h3>
+      <div class="grid six">
+        <figure><img src="media/1_7_campanile_i1.png" alt="i=1">
+          <figcaption>i_start=1</figcaption>
+        </figure>
+        <figure><img src="media/1_7_campanile_i3.png" alt="i=3">
+          <figcaption>i_start=3</figcaption>
+        </figure>
+        <figure><img src="media/1_7_campanile_i5.png" alt="i=5">
+          <figcaption>i_start=5</figcaption>
+        </figure>
+        <figure><img src="media/1_7_campanile_i7.png" alt="i=7">
+          <figcaption>i_start=7</figcaption>
+        </figure>
+        <figure><img src="media/1_7_campanile_i10.png" alt="i=10">
+          <figcaption>i_start=10</figcaption>
+        </figure>
+        <figure><img src="media/1_7_campanile_i20.png" alt="i=20">
+          <figcaption>i_start=20</figcaption>
+        </figure>
+      </div>
 
-      <h3 style="margin-top:1rem">Custom Images</h3>
-      <div class="grid two">
-        <figure><img src="media/1_7_custom1_edit.png" alt="Custom 1 edit">
-          <figcaption>Building edits at different noise levels</figcaption>
+      <h3 style="margin-top:1rem">Custom Image 1 Edits</h3>
+      <div class="grid six">
+        <figure><img src="media/1_7_custom1_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_custom1_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_custom1_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_custom1_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_custom1_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_custom1_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Custom Image 2 Edits</h3>
+      <div class="grid six">
+        <figure><img src="media/1_7_custom2_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_custom2_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_custom2_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_custom2_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_custom2_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_custom2_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ========= 1.7.1 ========= -->
+    <section class="card" id="1-7-1">
+      <h2>1.7.1 — Editing Hand-Drawn and Web Images</h2>
+      <p>
+        Projecting non-realistic images (sketches, web images) onto the natural image manifold.
+      </p>
+
+      <h3>Web Image Edits</h3>
+      <div class="grid six">
+        <figure><img src="media/1_7_1_web_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_1_web_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_1_web_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_1_web_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_1_web_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_1_web_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Hand-Drawn Image 1</h3>
+      <div class="grid six">
+        <figure><img src="media/1_7_1_draw1_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_1_draw1_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_1_draw1_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_1_draw1_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_1_draw1_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_1_draw1_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Hand-Drawn Image 2</h3>
+      <div class="grid six">
+        <figure><img src="media/1_7_1_draw2_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_1_draw2_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_1_draw2_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_1_draw2_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_1_draw2_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_1_draw2_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ========= 1.7.2 ========= -->
+    <section class="card" id="1-7-2">
+      <h2>1.7.2 — Inpainting (RePaint)</h2>
+      <p>
+        Filling masked regions while preserving unmasked areas using the RePaint algorithm:
+        <code>x_t ← m·x_t + (1-m)·forward(x_orig, t)</code>
+      </p>
+
+      <h3>Campanile Inpainting</h3>
+      <div class="grid three">
+        <figure><img src="media/1_7_2_campanile_original.png" alt="Original">
+          <figcaption>Original</figcaption>
         </figure>
-        <figure><img src="media/1_7_custom2_edit.png" alt="Custom 2 edit">
-          <figcaption>Waterfall edits at different noise levels</figcaption>
+        <figure><img src="media/1_7_2_campanile_mask.png" alt="Mask">
+          <figcaption>Mask</figcaption>
         </figure>
+        <figure><img src="media/1_7_2_campanile_inpaint.png" alt="Inpainted">
+          <figcaption>Inpainted Result</figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Custom Inpainting 1</h3>
+      <div class="grid three">
+        <figure><img src="media/1_7_2_custom1_original.png" alt="Original">
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure><img src="media/1_7_2_custom1_mask.png" alt="Mask">
+          <figcaption>Mask</figcaption>
+        </figure>
+        <figure><img src="media/1_7_2_custom1_inpaint.png" alt="Inpainted">
+          <figcaption>Inpainted Result</figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Custom Inpainting 2</h3>
+      <div class="grid three">
+        <figure><img src="media/1_7_2_custom2_original.png" alt="Original">
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure><img src="media/1_7_2_custom2_mask.png" alt="Mask">
+          <figcaption>Mask</figcaption>
+        </figure>
+        <figure><img src="media/1_7_2_custom2_inpaint.png" alt="Inpainted">
+          <figcaption>Inpainted Result</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ========= 1.7.3 ========= -->
+    <section class="card" id="1-7-3">
+      <h2>1.7.3 — Text-Conditional Image-to-Image Translation</h2>
+      <p>
+        Combining SDEdit with custom text prompts to guide the editing process.
+      </p>
+
+      <h3>Campanile Text-Guided Edits</h3>
+      <p style="color:var(--muted); margin-bottom:.8rem">Prompt: "[your prompt]"</p>
+      <div class="grid six">
+        <figure><img src="media/1_7_3_campanile_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_3_campanile_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_3_campanile_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_3_campanile_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_3_campanile_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_3_campanile_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Custom Image 1 Text-Guided Edits</h3>
+      <p style="color:var(--muted); margin-bottom:.8rem">Prompt: "[your prompt]"</p>
+      <div class="grid six">
+        <figure><img src="media/1_7_3_custom1_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_3_custom1_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_3_custom1_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_3_custom1_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_3_custom1_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_3_custom1_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Custom Image 2 Text-Guided Edits</h3>
+      <p style="color:var(--muted); margin-bottom:.8rem">Prompt: "[your prompt]"</p>
+      <div class="grid six">
+        <figure><img src="media/1_7_3_custom2_i1.png" alt="i=1"><figcaption>i_start=1</figcaption></figure>
+        <figure><img src="media/1_7_3_custom2_i3.png" alt="i=3"><figcaption>i_start=3</figcaption></figure>
+        <figure><img src="media/1_7_3_custom2_i5.png" alt="i=5"><figcaption>i_start=5</figcaption></figure>
+        <figure><img src="media/1_7_3_custom2_i7.png" alt="i=7"><figcaption>i_start=7</figcaption></figure>
+        <figure><img src="media/1_7_3_custom2_i10.png" alt="i=10"><figcaption>i_start=10</figcaption></figure>
+        <figure><img src="media/1_7_3_custom2_i20.png" alt="i=20"><figcaption>i_start=20</figcaption></figure>
       </div>
     </section>
 
     <!-- ========= 1.8 ========= -->
     <section class="card" id="1-8">
-      <h2>1.8 — Inpainting with Diffusion</h2>
+      <h2>1.8 — Visual Anagrams</h2>
       <p>
-        Following the RePaint algorithm, we can inpaint regions by forcing pixels outside the mask
-        to match the original (noisy) image at each denoising step:
-        <code>x_t ← m·x_t + (1-m)·forward(x_orig, t)</code>
+        Creating optical illusions that reveal different images when flipped upside down.
+        Algorithm: <code>ε = (ε_1 + flip(ε_2)) / 2</code>
       </p>
 
-      <h3>Campanile Inpainting</h3>
-      <figure><img src="media/1_8_campanile_inpaint.png" alt="Campanile inpaint">
-        <figcaption>Original → Mask → Inpainted result</figcaption>
-      </figure>
+      <h3>Visual Anagram Algorithm</h3>
+      <pre>
+for each denoising step:
+  ε_1 = UNet(x_t, prompt_1)          # noise for prompt 1
+  ε_2 = UNet(flip(x_t), prompt_2)    # noise for flipped image
+  ε = (ε_1 + flip(ε_2)) / 2         # average noise estimates
+  x_t ← denoise_step(x_t, ε)         # denoise with averaged noise
+      </pre>
 
-      <h3 style="margin-top:1rem">Custom Inpainting</h3>
+      <h3>Anagram 1</h3>
       <div class="grid two">
-        <figure><img src="media/1_8_custom1_inpaint.png" alt="Custom 1 inpaint">
-          <figcaption>Building inpainting (center region)</figcaption>
+        <figure><img src="media/1_8_anagram1_normal.png" alt="Normal 1">
+          <figcaption>Normal: "[prompt 1]"</figcaption>
         </figure>
-        <figure><img src="media/1_8_custom2_inpaint.png" alt="Custom 2 inpaint">
-          <figcaption>Waterfall inpainting (sky region)</figcaption>
+        <figure><img src="media/1_8_anagram1_flipped.png" alt="Flipped 1">
+          <figcaption>Flipped: "[prompt 2]"</figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin-top:1rem">Anagram 2</h3>
+      <div class="grid two">
+        <figure><img src="media/1_8_anagram2_normal.png" alt="Normal 2">
+          <figcaption>Normal: "[prompt 1]"</figcaption>
+        </figure>
+        <figure><img src="media/1_8_anagram2_flipped.png" alt="Flipped 2">
+          <figcaption>Flipped: "[prompt 2]"</figcaption>
         </figure>
       </div>
     </section>
 
     <!-- ========= 1.9 ========= -->
     <section class="card" id="1-9">
-      <h2>1.9 — Text-Conditional Image-to-Image</h2>
+      <h2>1.9 — Hybrid Images with Diffusion</h2>
       <p>
-        Combining SDEdit with text prompts lets us guide the editing. Same noise levels as before,
-        but now conditioned on artistic style prompts like "an oil painting of a snowy mountain village".
+        Creating hybrid images by combining low frequencies from one prompt with high frequencies from another.
+        Algorithm: <code>ε = f_lowpass(ε_1) + f_highpass(ε_2)</code>
       </p>
 
-      <figure><img src="media/1_9_text_guided_edit.png" alt="Text-guided editing">
-        <figcaption>Text-guided edits of Campanile and custom images</figcaption>
-      </figure>
-    </section>
-
-    <!-- ========= 1.10 ========= -->
-    <section class="card" id="1-10">
-      <h2>1.10 — Visual Anagrams</h2>
-      <p>
-        By averaging noise estimates from two different text prompts (one normal, one flipped),
-        we create images that look different when flipped upside down!
-        Algorithm: <code>ε = (ε_1 + flip(ε_2)) / 2</code>
-      </p>
-
-      <h3>Example 1: "Old Man" ↔ "Campfire People"</h3>
-      <div class="grid two">
-        <figure><img src="media/1_10_anagram1_normal.png" alt="Anagram 1 normal">
-          <figcaption>Normal: "an oil painting of an old man"</figcaption>
-        </figure>
-        <figure><img src="media/1_10_anagram1_flipped.png" alt="Anagram 1 flipped">
-          <figcaption>Flipped: "an oil painting of people around a campfire"</figcaption>
-        </figure>
-      </div>
-
-      <h3 style="margin-top:1rem">Example 2: "Waterfalls" ↔ "Skull"</h3>
-      <div class="grid two">
-        <figure><img src="media/1_10_anagram2_normal.png" alt="Anagram 2 normal">
-          <figcaption>Normal: "a lithograph of waterfalls"</figcaption>
-        </figure>
-        <figure><img src="media/1_10_anagram2_flipped.png" alt="Anagram 2 flipped">
-          <figcaption>Flipped: "a lithograph of a skull"</figcaption>
-        </figure>
-      </div>
-    </section>
-
-    <!-- ========= 1.11 ========= -->
-    <section class="card" id="1-11">
-      <h2>1.11 — Hybrid Images with Diffusion</h2>
-      <p>
-        Similar to Project 2, we create hybrid images using diffusion by combining low frequencies
-        from one prompt with high frequencies from another:
-        <code>ε = f_lowpass(ε_1) + f_highpass(ε_2)</code>
-      </p>
-
-      <h3>Hybrid Examples</h3>
-      <div class="grid two">
-        <figure><img src="media/1_11_hybrid1.png" alt="Hybrid 1">
-          <figcaption>Skull (low freq) + Waterfalls (high freq)</figcaption>
-        </figure>
-        <figure><img src="media/1_11_hybrid2.png" alt="Hybrid 2">
-          <figcaption>Old Man (low freq) + Campfire (high freq)</figcaption>
-        </figure>
-      </div>
-
-      <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Effect:</strong> Close up you see high-frequency details, far away you see low-frequency structure.
-      </p>
-    </section>
-
-    <div class="part-header"><h2>Part 2 — Training Diffusion Models from Scratch</h2></div>
-
-    <!-- ========= 2.1 ========= -->
-    <section class="card" id="2-1">
-      <h2>2.1 — Implementing a UNet Denoiser</h2>
-      <p>
-        We implement a UNet architecture with encoder-decoder structure and skip connections.
-        The network takes noisy MNIST digits and predicts clean versions.
-      </p>
-
-      <h3>UNet Architecture</h3>
+      <h3>Hybrid Image Algorithm</h3>
       <pre>
-Encoder:
-  ConvBlock(1 → D)  @ 28×28
-  DownBlock(D → D)  @ 14×14  [skip1]
-  DownBlock(D → 2D) @ 7×7    [skip2]
-
-Bottleneck:
-  Flatten  (7×7 → 1×1)
-  Unflatten (1×1 → 7×7)
-
-Decoder:
-  UpBlock(2D → D) @ 14×14  + skip2
-  UpBlock(D → D)  @ 28×28  + skip1
+for each denoising step:
+  ε_1 = UNet(x_t, prompt_1)
+  ε_2 = UNet(x_t, prompt_2)
   
-Output:
-  ConvBlock + Conv2d(D → 1)
+  # Gaussian blur with kernel_size=33, sigma=2
+  ε_low = gaussian_blur(ε_1)
+  ε_high = ε_2 - gaussian_blur(ε_2)
+  
+  ε = ε_low + ε_high
+  x_t ← denoise_step(x_t, ε)
       </pre>
 
-      <h3 style="margin-top:1rem">2.1.1 — Training Results</h3>
-      <p>Trained for 5 epochs with σ=0.5 noise, batch_size=256, lr=1e-4.</p>
-
-      <figure><img src="media/2_1_1_loss_curve.png" alt="Training loss">
-        <figcaption>Training loss curve over 5 epochs</figcaption>
+      <h3>Hybrid 1</h3>
+      <figure><img src="media/1_9_hybrid1.png" alt="Hybrid 1">
+        <figcaption>Low freq: "[prompt 1]" + High freq: "[prompt 2]"</figcaption>
       </figure>
 
-      <div class="grid two" style="margin-top:.8rem">
-        <figure><img src="media/2_1_1_epoch1_results.png" alt="Epoch 1 results">
-          <figcaption>Results after Epoch 1</figcaption>
-        </figure>
-        <figure><img src="media/2_1_1_epoch5_results.png" alt="Epoch 5 results">
-          <figcaption>Results after Epoch 5</figcaption>
-        </figure>
-      </div>
-    </section>
-
-    <!-- ========= 2.1.2 ========= -->
-    <section class="card" id="2-1-2">
-      <h2>2.1.2 — Out-of-Distribution Testing</h2>
-      <p>
-        Testing the denoiser (trained on σ=0.5) on different noise levels σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0].
-      </p>
-
-      <figure><img src="media/2_1_2_ood_testing.png" alt="OOD testing">
-        <figcaption>Top: Clean, Middle: Noisy, Bottom: Denoised at various σ</figcaption>
+      <h3 style="margin-top:1rem">Hybrid 2</h3>
+      <figure><img src="media/1_9_hybrid2.png" alt="Hybrid 2">
+        <figcaption>Low freq: "[prompt 1]" + High freq: "[prompt 2]"</figcaption>
       </figure>
 
       <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Observation:</strong> Best performance at σ=0.5 (training level). Performance degrades for σ far from 0.5.
-      </p>
-    </section>
-
-    <!-- ========= 2.1.3 ========= -->
-    <section class="card" id="2-1-3">
-      <h2>2.1.3 — Denoising Pure Noise</h2>
-      <p>
-        Training to denoise pure random noise z ~ N(0,I) to clean digits. With MSE loss, the model learns
-        to output the average of all MNIST digits (the centroid).
-      </p>
-
-      <figure><img src="media/2_1_3_pure_noise.png" alt="Pure noise denoising">
-        <figcaption>Results: blurry "average digit" regardless of input noise</figcaption>
-      </figure>
-
-      <p style="margin-top:.6rem; color:var(--muted)">
-        <strong>Why?</strong> Input contains no information about which digit. MSE loss minimizes distance to all
-        training examples, so optimal prediction is E[x] = average digit.
-      </p>
-    </section>
-
-    <!-- ========= 2.2 ========= -->
-    <section class="card" id="2-2">
-      <h2>2.2 — Time-Conditioned UNet</h2>
-      <p>
-        Add time conditioning via FCBlocks that modulate features based on timestep t.
-        Training follows Algorithm B.1 (Flow Matching): sample t ~ Uniform(0,1), interpolate x_t = (1-t)·x_1 + t·x_0,
-        predict flow v = x_0 - x_1.
-      </p>
-
-      <h3>Training Loss</h3>
-      <figure><img src="media/2_2_loss_curve.png" alt="Time-conditional loss">
-        <figcaption>Training loss for time-conditioned UNet (5 epochs, D=64, lr=1e-2)</figcaption>
-      </figure>
-    </section>
-
-    <!-- ========= 2.3 ========= -->
-    <section class="card" id="2-3">
-      <h2>2.3 — Sampling from Time-Conditioned UNet</h2>
-      <p>
-        Using Algorithm B.2, we sample by starting from noise and iteratively following the predicted flow.
-      </p>
-
-      <h3>Sampling Results</h3>
-      <div class="grid three">
-        <figure><img src="media/2_3_epoch1_samples.png" alt="Epoch 1 samples">
-          <figcaption>Epoch 1: Mostly noise</figcaption>
-        </figure>
-        <figure><img src="media/2_3_epoch5_samples.png" alt="Epoch 5 samples">
-          <figcaption>Epoch 5: Recognizable digits</figcaption>
-        </figure>
-        <figure><img src="media/2_3_epoch10_samples.png" alt="Epoch 10 samples">
-          <figcaption>Epoch 10: Clear, diverse digits</figcaption>
-        </figure>
-      </div>
-    </section>
-
-    <!-- ========= 2.4-2.6 ========= -->
-    <section class="card" id="2-4">
-      <h2>2.4-2.6 — Class-Conditional UNet with CFG</h2>
-      <p>
-        Add class conditioning via one-hot vectors and FCBlocks. During training, randomly drop class conditioning
-        10% of the time (p_uncond=0.1) to enable classifier-free guidance at sampling.
-      </p>
-
-      <h3>Training Loss (No Scheduler)</h3>
-      <figure><img src="media/2_5_loss_curve.png" alt="Class-conditional loss">
-        <figcaption>Training without learning rate scheduler (constant lr=1e-2)</figcaption>
-      </figure>
-
-      <h3 style="margin-top:1rem">Sampling Results (γ=5.0)</h3>
-      <p>Generate 4 instances of each digit 0-9 using CFG with guidance scale γ=5.0.</p>
-
-      <div class="grid three">
-        <figure><img src="media/2_6_epoch1_samples.png" alt="Epoch 1 class samples">
-          <figcaption>Epoch 1: Noisy, barely recognizable</figcaption>
-        </figure>
-        <figure><img src="media/2_6_epoch5_samples.png" alt="Epoch 5 class samples">
-          <figcaption>Epoch 5: Clear digit shapes emerging</figcaption>
-        </figure>
-        <figure><img src="media/2_6_epoch10_samples.png" alt="Epoch 10 class samples">
-          <figcaption>Epoch 10: High-quality, controlled generation</figcaption>
-        </figure>
-      </div>
-
-      <div class="hr"></div>
-
-      <h3>Learning Rate Scheduler Ablation</h3>
-      <pre>
-WITHOUT Scheduler:
-- Used constant lr=1e-2 throughout 10 epochs
-- Simpler training loop
-- Similar final performance to scheduler version
-- Slight oscillation in later epochs
-
-Compensation Strategy:
-- Adam's adaptive learning rates
-- Sufficient epochs (10) for convergence
-- CFG at sampling improves quality
-      </pre>
-
-      <p style="color:var(--muted)">
-        <strong>Conclusion:</strong> The exponential LR scheduler is helpful but not critical.
-        Constant learning rate with proper hyperparameters achieves comparable results.
+        <strong>Effect:</strong> View close up to see high-frequency details, step back to see low-frequency structure.
       </p>
     </section>
 
@@ -464,8 +577,8 @@ Compensation Strategy:
       <div class="hr"></div>
       <p>
         <strong>Coolest Thing Learned:</strong> Diffusion models can create optical illusions (visual anagrams)
-        by satisfying constraints in both normal and flipped orientations simultaneously - this demonstrates
-        the incredible flexibility of these models to optimize for complex multi-objective goals.
+        and hybrid images by manipulating noise estimates in creative ways. The ability to average predictions
+        from different prompts or transformations demonstrates the incredible flexibility of these models.
       </p>
       <div class="hr" style="margin-top:1rem"></div>
       <p>© <span id="year"></span> Raymond Wang • <a href="https://raymond23101.github.io">raymond23101.github.io</a></p>
