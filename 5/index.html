@@ -60,9 +60,9 @@
       </p>
     </header>
 
-        <div class="major-part"><h2>Part A — The Power of Diffusion Models</h2></div>
+    <div class="major-part"><h2>Part A — The Power of Diffusion Models</h2></div>
 
-        <div class="part-header"><h2>Part 0 — Setup & Text Prompts</h2></div>
+    <div class="part-header"><h2>Part 0 — Setup & Text Prompts</h2></div>
 
     <section class="card" id="part0">
       <h2>Generated Images from Text Prompts</h2>
@@ -85,13 +85,13 @@
       </p>
     </section>
 
-        <div class="part-header"><h2>Part 1 — Sampling Loops</h2></div>
+    <div class="part-header"><h2>Part 1 — Sampling Loops</h2></div>
 
-        <section class="card" id="1-1">
+    <section class="card" id="1-1">
       <h2>1.1 — Implementing the Forward Process</h2>
       <p>
         The forward diffusion process adds Gaussian noise to clean images according to:
-        <code>x_t = √(ᾱ_t)·x_0 + √(1-ᾱ_t)·ε</code> where <code>ε ~ N(0, I)</code>.
+        $x_t = \sqrt{\bar{\alpha}_t} \cdot x_0 + \sqrt{1-\bar{\alpha}_t} \cdot \varepsilon$ where $\varepsilon \sim N(0, I)$.
       </p>
 
       <h3>Forward Process Equation</h3>
@@ -104,7 +104,7 @@ where:
   ᾱ_t = noise schedule coefficient (alphas_cumprod[t])
   ε ~ N(0, I) = Gaussian noise
       </pre>
-             
+             
 
       <figure>
         <img src="media/proj5_1.1.png" alt="Forward process">
@@ -114,13 +114,13 @@ where:
       </figure>
     </section>
 
-        <section class="card" id="1-2">
+    <section class="card" id="1-2">
       <h2>1.2 — Classical Denoising with Gaussian Blur</h2>
       <p>
         Attempting to denoise using classical Gaussian blur filtering (kernel_size=9, sigma=2.0).
         Results demonstrate the limitations of traditional methods compared to learned diffusion models.
       </p>
-            
+            
 
       <figure>
         <img src="media/proj5_1.2.png" alt="Gaussian blur denoising">
@@ -131,11 +131,11 @@ where:
       </figure>
     </section>
 
-        <section class="card" id="1-3">
-      <h2>1.3 — One-Step Denoising</h2>
+    <section class="card" id="1-3">
+      <h2>1.3 — One-Step Denoising </h2>
       <p>
         Using the pretrained UNet to estimate and remove noise in a single step:
-        <code>x_0 = (x_t - √(1-ᾱ_t)·ε_θ(x_t, t)) / √(ᾱ_t)</code>
+        $x_0 = (x_t - \sqrt{1-\bar{\alpha}_t}\cdot \varepsilon_\theta(x_t, t)) / \sqrt{\bar{\alpha}_t}$
       </p>
 
       <figure>
@@ -147,7 +147,7 @@ where:
       </figure>
     </section>
 
-        <section class="card" id="1-4">
+    <section class="card" id="1-4">
       <h2>1.4 — Iterative Denoising (DDPM)</h2>
       <p>
         Implementing the full iterative denoising process with strided timesteps: [990, 960, ..., 30, 0].
@@ -164,7 +164,7 @@ For each step i → i+1:
   3. Step to next timestep using DDPM formula
   4. Add variance for stochasticity
       </pre>
-             
+             
 
       <figure>
         <img src="media/proj5_1.4.png" alt="Iterative denoising">
@@ -175,7 +175,7 @@ For each step i → i+1:
       </figure>
     </section>
 
-        <section class="card" id="1-5">
+    <section class="card" id="1-5">
       <h2>1.5 — Diffusion Model Sampling</h2>
       <p>
         Generating images from pure noise by running iterative denoising from t=990 to t=0.
@@ -190,7 +190,7 @@ For each step i → i+1:
       </figure>
     </section>
 
-        <section class="card" id="1-6">
+    <section class="card" id="1-6">
       <h2>1.6 — Classifier-Free Guidance (CFG)</h2>
       <p>
         Improving sample quality using CFG with guidance scale $\gamma=7$.
@@ -205,7 +205,7 @@ For each denoising step:
   ε_u = UNet(x_t, t, empty_prompt_embeds)  # unconditional
   ε = ε_u + γ(ε_c - ε_u)                  # γ=7
       </pre>
-             
+             
 
       <figure>
         <img src="media/proj5_1.6.png" alt="Sampling with CFG">
@@ -215,7 +215,7 @@ For each denoising step:
       </figure>
     </section>
 
-        <section class="card" id="1-7">
+    <section class="card" id="1-7">
       <h2>1.7 — Image-to-Image Translation (SDEdit)</h2>
       <p>
         Adding noise to real images at different levels and denoising with prompt "a high quality photo".
@@ -247,14 +247,14 @@ For each denoising step:
       </figure>
     </section>
 
-        <section class="card" id="1-7-1">
+    <section class="card" id="1-7-1">
       <h2>1.7.1 — Editing Hand-Drawn and Web Images</h2>
       <p>
         Projecting non-realistic images (sketches, web images) onto the natural image manifold
         using the same SDEdit procedure.
       </p>
 
-      <h3>Web Image Edits</h3>
+      <h3>Web Image Edits </h3>
       <div class="grid two">
         <figure>
           <img src="media/proj5_1.7.1_web.png" alt="Web original">
@@ -291,7 +291,7 @@ For each denoising step:
       </div>
     </section>
 
-        <section class="card" id="1-7-2">
+    <section class="card" id="1-7-2">
       <h2>1.7.2 — Inpainting (RePaint Algorithm)</h2>
       <p>
         Filling masked regions while preserving unmasked areas using the RePaint algorithm:
@@ -304,10 +304,10 @@ For each denoising step:
   1. Denoise normally: x_t → x_{t-1}
   2. Replace unmasked regions with original (noisy):
      x_t ← mask·x_t + (1-mask)·forward(x_original, t)
-  
+ 
 Where mask=1 means "inpaint this region"
       </pre>
-             
+             
 
       <h3>Campanile Inpainting</h3>
       <figure>
@@ -334,7 +334,7 @@ Where mask=1 means "inpaint this region"
       </figure>
     </section>
 
-        <section class="card" id="1-7-3">
+    <section class="card" id="1-7-3">
       <h2>1.7.3 — Text-Conditional Image-to-Image Translation</h2>
       <p>
         Combining SDEdit with custom text prompts to guide the editing process.
@@ -367,7 +367,7 @@ Where mask=1 means "inpaint this region"
       </figure>
     </section>
 
-        <section class="card" id="1-8">
+    <section class="card" id="1-8">
       <h2>1.8 — Visual Anagrams</h2>
       <p>
         Creating optical illusions that reveal different images when flipped upside down.
@@ -383,7 +383,7 @@ For each denoising step:
   ε = (ε_1 + ε_2_flipped_back) / 2     # average both noise estimates
   x_t ← denoise_step(x_t, ε)            # denoise with averaged noise
       </pre>
-             
+             
 
       <h3>Anagram 1: "Old Man" ↔ "Campfire"</h3>
       <figure>
@@ -410,7 +410,7 @@ For each denoising step:
       </figure>
     </section>
 
-        <section class="card" id="1-9">
+    <section class="card" id="1-9">
       <h2>1.9 — Hybrid Images with Diffusion</h2>
       <p>
         Creating hybrid images by combining low frequencies from one prompt with high frequencies from another.
@@ -422,15 +422,15 @@ For each denoising step:
 For each denoising step:
   ε_1 = UNet(x_t, t, prompt_1)
   ε_2 = UNet(x_t, t, prompt_2)
-  
+ 
   # Apply frequency filtering (kernel_size=33, sigma=2)
   ε_low = gaussian_blur(ε_1)
   ε_high = ε_2 - gaussian_blur(ε_2)
-  
+ 
   ε = ε_low + ε_high
   x_t ← denoise_step(x_t, ε)
       </pre>
-             
+             
 
       <h3>Hybrid 1: Skull + Waterfalls</h3>
       <figure>
@@ -454,11 +454,11 @@ For each denoising step:
       </p>
     </section>
 
-        <div class="content">
+    <div class="content">
 
-        <div class="major-part"><h2>Part B — Training Diffusion Models from Scratch</h2></div>
+    <div class="major-part"><h2>Part B — Training Diffusion Models from Scratch</h2></div>
 
-        <div class="part-header"><h2>Part 1 — Training a Single-Step Denoising UNet</h2></div>
+    <div class="part-header"><h2>Part 1 — Training a Single-Step Denoising UNet</h2></div>
 
     <section class="card" id="b-1-1">
       <h2>1.1 — Implementing the UNet</h2>
@@ -480,11 +480,11 @@ Bottleneck:
 Decoder:
   UpBlock(2D → D) @ 14×14  + skip2
   UpBlock(D → D)  @ 28×28  + skip1
-  
+ 
 Output:
   ConvBlock(D → D) + Conv2d(D → 1)
       </pre>
-             
+             
     </section>
 
     <section class="card" id="b-1-2-1">
@@ -563,7 +563,7 @@ With an MSE loss $L = E[||D(z) - x||^2]$ and pure noise input $z$ containing no 
       </pre>
     </section>
 
-        <div class="part-header"><h2>Part 2 — Training a Flow Matching Model</h2></div>
+    <div class="part-header"><h2>Part 2 — Training a Flow Matching Model</h2></div>
 
     <section class="card" id="b-2-1">
       <h2>2.1 — Adding Time Conditioning to UNet</h2>
@@ -578,7 +578,7 @@ FCBlock: Linear(F_in, F_out) → GELU → Linear(F_out, F_out)
 Time Embedding:
   fc1_t = FCBlock(1, 2D) 
   fc2_t = FCBlock(1, D)  
-  
+ 
   t1 = fc1_t(t_normalized)
   t2 = fc2_t(t_normalized)
 
@@ -586,11 +586,11 @@ Modulation (element-wise multiplication):
   unflatten = unflatten * t1
   up1 = up1 * t2
       </pre>
-             
+             
     </section>
 
     <section class="card" id="b-2-2">
-      <h2>2.2 — Training the Time-Conditioned UNet </h2>
+      <h2>2.2 — Training the Time-Conditioned UNet  </h2>
       <p>
         We trained the time-conditioned UNet using the **Flow Matching Objective**. The UNet is trained to predict the flow $v = x_0 - x_1$ given the interpolated sample $x_t$ and timestep $t$.
         <strong>Hyperparameters:</strong> D=64, batch_size=64, lr=1e-2, ExponentialLR decay ($\gamma=0.9999$)
@@ -672,7 +672,7 @@ v_{\text{cfg}} = v_{\text{uncond}} + \gamma(v_{\text{cond}} - v_{\text{uncond}})
 x = x - dt \cdot v_{\text{cfg}}
       </pre>
 
-      <h3>Sampling Results (Deliverable) </h3>
+      <h3>Sampling Results (Deliverable) </h3>
       <div class="grid three">
         <figure>
           <img src="media/proj5b_2.6_epoch1.png" alt="Epoch 1 class samples">
